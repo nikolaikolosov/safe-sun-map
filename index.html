@@ -37,13 +37,17 @@
             role="application"
             aria-label="World map showing your location"
             data-i18n-aria="a11y.map"
-        ></div>
-
-        <!-- The answer. A wash over the whole viewport rather than a shape on
-             the map, because the reading is about the visitor, not about a
-             region — and because a viewport-sized element cannot be panned
-             out of view. -->
-        <div id="veil" aria-hidden="true"></div>
+        >
+            <!-- The answer. A wash over the whole viewport rather than a shape
+                 on the map, because the reading is about the visitor, not about
+                 a region — and because a viewport-sized element cannot be
+                 panned out of view.
+                 It lives INSIDE the map container so it can be stacked between
+                 Leaflet's tiles and Leaflet's controls; see css/styles.css.
+                 Leaflet appends its own panes alongside it and leaves it
+                 alone. -->
+            <div id="veil" aria-hidden="true"></div>
+        </div>
 
         <main id="card" aria-live="polite">
             <!-- The label stays up in every state: it titles the card, so it
