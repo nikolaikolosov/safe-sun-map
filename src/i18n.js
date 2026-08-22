@@ -53,6 +53,8 @@ export const STRINGS = {
             'of skin cancer. It damages the eyes too. The higher the number, the less time ' +
             'unprotected skin can take — at 11 it is minutes.',
         'help.source': 'Readings from Open-Meteo. Scale: the WHO/WMO Global Solar UV Index.',
+        'support.label': 'Support the author',
+        'support.aria': 'Support the author on PayPal (opens in a new tab)',
     },
     es: {
         'band.low': 'Bajo',
@@ -89,6 +91,8 @@ export const STRINGS = {
             'el riesgo de cáncer de piel. También daña los ojos. Cuanto más alto el número, ' +
             'menos aguanta la piel sin protección: en 11 son minutos.',
         'help.source': 'Datos de Open-Meteo. Escala: Índice UV Solar Mundial de la OMS/OMM.',
+        'support.label': 'Apoyar al autor',
+        'support.aria': 'Apoyá al autor por PayPal (se abre en otra pestaña)',
     },
     ru: {
         'band.low': 'Низкий',
@@ -125,6 +129,8 @@ export const STRINGS = {
             'кожи. Он же вредит глазам. Чем выше число, тем меньше времени выдерживает ' +
             'незащищённая кожа: при 11 счёт идёт на минуты.',
         'help.source': 'Данные: Open-Meteo. Шкала: глобальный солнечный УФ-индекс ВОЗ/ВМО.',
+        'support.label': 'Поддержать автора',
+        'support.aria': 'Поддержать автора через PayPal (откроется в новой вкладке)',
     },
 };
 

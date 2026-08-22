@@ -41,6 +41,9 @@ The ⓘ control in the bottom-right opens a one-screen explainer: what the index
 five levels as a colour legend, and what UV does to skin and eyes. The legend is generated from
 the same band table the map is coloured from, so it cannot drift from the behaviour.
 
+Bottom-left is a quiet link to the author's PayPal. It is markup and CSS only — no script, no
+third-party widget, nothing loaded from a payment host.
+
 ## Layout
 
 Buildless static site, deployed straight from `main` by GitHub Pages. `npm` is dev tooling
