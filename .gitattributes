@@ -1,0 +1,4 @@
+# Prettier is configured for LF and CI checks formatting on Linux. Without this
+# an autocrlf checkout on Windows turns every file CRLF and `npm run
+# format:check` fails locally on code CI considers clean.
+* text=auto eol=lf

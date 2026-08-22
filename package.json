@@ -1,0 +1,21 @@
+{
+    "name": "safe-sun-map",
+    "private": true,
+    "type": "module",
+    "description": "Dev tooling for Safe Sun Map (the app itself is a buildless static site)",
+    "license": "MIT",
+    "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "lint": "eslint src tests",
+        "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\" \"css/**/*.css\" \"*.html\"",
+        "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\" \"css/**/*.css\" \"*.html\""
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "eslint": "^10.6.0",
+        "globals": "^17.7.0",
+        "prettier": "^3.9.4",
+        "vitest": "^4.1.9"
+    }
+}
