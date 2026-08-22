@@ -81,6 +81,43 @@
             </div>
         </main>
 
+        <!-- Help sheet, opened by the ⓘ control on the map. A native <dialog>:
+             focus trapping, Esc-to-close and an inert page behind it all come
+             with the element. -->
+        <dialog id="help" aria-labelledby="help-title">
+            <div class="help-head">
+                <h2 id="help-title" data-i18n="help.title">The UV index</h2>
+                <button
+                    type="button"
+                    id="help-close"
+                    class="help-close"
+                    aria-label="Close"
+                    data-i18n-aria="help.close"
+                >
+                    ×
+                </button>
+            </div>
+
+            <p data-i18n="help.what">
+                A measure of how strong the sun's ultraviolet radiation is at ground level right
+                now.
+            </p>
+
+            <h3 data-i18n="help.levels">Levels</h3>
+            <!-- Rows are generated from the band table in src/uv.js, so the
+                 legend cannot drift from the colours the map actually uses. -->
+            <ul id="help-levels" class="help-levels"></ul>
+
+            <p data-i18n="help.effect">
+                Ultraviolet is what burns skin, and over the years ages it and raises the risk of
+                skin cancer.
+            </p>
+
+            <p class="help-source" data-i18n="help.source">
+                Readings from Open-Meteo. Scale: the WHO/WMO Global Solar UV Index.
+            </p>
+        </dialog>
+
         <script
             src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="

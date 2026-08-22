@@ -62,6 +62,29 @@ export function formatUv(uv, locale) {
 }
 
 /**
+ * The bands as readable ranges — `0–2.9`, `3–5.9`, … `11+` — in band order.
+ *
+ * Derived from the same table the colours come from rather than written out in
+ * the help copy, so the legend cannot drift from what the map actually does.
+ * The open-ended top band is marked with `+` rather than a phrase, which saves
+ * translating it three times.
+ *
+ * @param {string} locale - BCP-47 tag
+ * @returns {string[]}
+ */
+export function bandRanges(locale) {
+    const format = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format;
+
+    return UV_BANDS.map((band, i) => {
+        const from = format(i === 0 ? 0 : UV_BANDS[i - 1].max);
+        if (!Number.isFinite(band.max)) return `${from}+`;
+        // An en dash, and the bands are closed at one decimal below the next
+        // one's exclusive bound — the same resolution `roundUv` reports at.
+        return `${from}–${format(roundUv(band.max - 0.1))}`;
+    });
+}
+
+/**
  * The band a UV index falls in. Negative values (never seen in practice, but a
  * provider glitch is not worth a crash) clamp into the lowest band.
  *
