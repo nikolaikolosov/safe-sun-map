@@ -45,7 +45,7 @@ export const STRINGS = {
         'help.what':
             "Shows the level of the sun's ultraviolet radiation at ground level. It starts " +
             'at 0 and has no upper limit. It is highest around midday. It rises in summer, ' +
-            'closer to the equator, and out in the open near reflective surfaces such as ' +
+            'closer to the equator, out in the open, and near reflective surfaces such as ' +
             'water, sand or mountains. Light cloud barely lowers the UV index.',
         'help.levels': 'Levels',
         'help.effect':
@@ -83,7 +83,7 @@ export const STRINGS = {
         'help.what':
             'Muestra el nivel de radiación ultravioleta del sol a nivel del suelo. Arranca ' +
             'en 0 y no tiene límite superior. Alcanza su máximo cerca del mediodía. Sube en ' +
-            'verano, al acercarse al ecuador, y en espacios abiertos cerca de superficies ' +
+            'verano, al acercarse al ecuador, en espacios abiertos y cerca de superficies ' +
             'reflectantes como el agua, la arena o la montaña. Una nubosidad liviana casi no ' +
             'baja el índice UV.',
         'help.levels': 'Niveles',
@@ -124,7 +124,7 @@ export const STRINGS = {
             'Показывает уровень ультрафиолетового излучения Солнца у поверхности земли. ' +
             'Начинается с 0, верхней границы нет. Максимальное значение около полудня. ' +
             'Повышается летом, при приближении к экватору, а также на открытом пространстве ' +
-            'рядом с отражающими поверхностями, такими как водная гладь, песок или горы. ' +
+            'и рядом с отражающими поверхностями, такими как водная гладь, песок или горы. ' +
             'Лёгкая облачность почти не снижает УФ-индекс.',
         'help.levels': 'Уровни',
         'help.effect':
