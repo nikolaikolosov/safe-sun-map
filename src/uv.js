@@ -47,6 +47,21 @@ export function roundUv(uv) {
 }
 
 /**
+ * The reading as the card shows it: one decimal, with the locale's own decimal
+ * separator — `4.0` in English, `4,0` in Spanish and Russian.
+ *
+ * @param {number} uv
+ * @param {string} locale - BCP-47 tag
+ * @returns {string}
+ */
+export function formatUv(uv, locale) {
+    return new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+    }).format(roundUv(uv));
+}
+
+/**
  * The band a UV index falls in. Negative values (never seen in practice, but a
  * provider glitch is not worth a crash) clamp into the lowest band.
  *

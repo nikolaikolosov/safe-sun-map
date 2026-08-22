@@ -7,14 +7,15 @@
     "scripts": {
         "test": "vitest run",
         "test:watch": "vitest",
-        "lint": "eslint src tests",
-        "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\" \"css/**/*.css\" \"*.html\"",
-        "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\" \"css/**/*.css\" \"*.html\""
+        "lint": "eslint src tests *.config.js",
+        "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\" \"css/**/*.css\" \"*.html\" \"*.config.js\"",
+        "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\" \"css/**/*.css\" \"*.html\" \"*.config.js\""
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "eslint": "^10.6.0",
         "globals": "^17.7.0",
+        "jsdom": "^29.1.1",
         "prettier": "^3.9.4",
         "vitest": "^4.1.9"
     }

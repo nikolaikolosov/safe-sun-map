@@ -6,9 +6,17 @@
  * and no persisted state.
  */
 
-import { fetchUv, roundUv, uvBand } from './uv.js';
+import { fetchUv, formatUv, uvBand } from './uv.js';
 import { initMap, recentre, showUser } from './map.js';
-import { LANG, t } from './i18n.js';
+import {
+    applyTranslations,
+    getLang,
+    initLang,
+    localeTag,
+    onLangChange,
+    setLang,
+    t,
+} from './i18n.js';
 
 /**
  * How often the reading is refreshed. The provider publishes UV hourly, so
@@ -52,6 +60,19 @@ let timezone = null;
 let inFlight = null;
 
 /**
+ * What the card is showing, kept as data rather than only as DOM.
+ *
+ * A language switch has to redraw whatever is already on screen, and the band
+ * name, the advice and the status line are all written by JS — there is no
+ * markup carrying their keys for `applyTranslations` to find. Holding the state
+ * means the switch replays it instead of the card going blank or, worse,
+ * keeping the old language until the next fix arrives ten minutes later.
+ *
+ * @type {{kind: 'reading', uv: number} | {kind: 'status', key: string, retryable: boolean}}
+ */
+let view = { kind: 'status', key: 'status.locating', retryable: false };
+
+/**
  * Great-circle distance in metres. Small enough to inline; the alternative is a
  * dependency for one formula.
  *
@@ -83,48 +104,59 @@ function needsRefresh(position) {
 }
 
 /**
- * Shows the reading and hides the status line.
+ * Shows a reading.
  *
  * @param {number} uv
  */
 function showReading(uv) {
-    const band = uvBand(uv);
-
-    dom.veil.style.backgroundColor = band.fill;
-    dom.veil.style.opacity = String(band.alpha);
-    dom.headline.style.color = band.ink;
-
-    dom.value.textContent = roundUv(uv).toFixed(1);
-    dom.band.textContent = t('band.' + band.id);
-    dom.advice.textContent = t('advice.' + band.id);
-
-    dom.reading.hidden = false;
-    dom.status.hidden = true;
-    updateClock();
+    view = { kind: 'reading', uv };
+    render();
 }
 
 /**
  * Shows a one-line status instead of a reading.
  *
- * The wash goes fully transparent while a status is up: a colour left on screen
- * next to "location is off" would be read as the answer, and a wrong answer to
- * "is it safe outside" is worse than none.
- *
  * @param {string} key - i18n key of the message
  * @param {boolean} [retryable] - whether to offer the retry button
  */
 function showStatus(key, retryable = false) {
-    dom.statusText.textContent = t(key);
-    dom.retry.hidden = !retryable;
+    view = { kind: 'status', key, retryable };
+    render();
+}
+
+/** Draws `view`. Idempotent, so a language switch can simply call it again. */
+function render() {
+    if (view.kind === 'reading') {
+        const band = uvBand(view.uv);
+
+        dom.veil.style.backgroundColor = band.fill;
+        dom.veil.style.opacity = String(band.alpha);
+        dom.headline.style.color = band.ink;
+
+        dom.value.textContent = formatUv(view.uv, localeTag());
+        dom.band.textContent = t('band.' + band.id);
+        dom.advice.textContent = t('advice.' + band.id);
+
+        dom.reading.hidden = false;
+        dom.status.hidden = true;
+        updateClock();
+        return;
+    }
+
+    dom.statusText.textContent = t(view.key);
+    dom.retry.hidden = !view.retryable;
     dom.reading.hidden = true;
     dom.status.hidden = false;
+    // The wash goes fully transparent while a status is up: a colour left on
+    // screen next to "location is off" would be read as the answer, and a wrong
+    // answer to "is it safe outside" is worse than none.
     dom.veil.style.opacity = '0';
 }
 
 /** Renders local time at the visitor's coordinates, per the provider's zone. */
 function updateClock() {
     if (!timezone) return;
-    const time = new Intl.DateTimeFormat(LANG, {
+    const time = new Intl.DateTimeFormat(localeTag(), {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
@@ -201,12 +233,38 @@ function readPosition() {
     );
 }
 
-function init() {
-    dom.retry.textContent = t('status.retry');
-    document.getElementById('uv-label').textContent = t('label.uv');
-    document.getElementById('map').setAttribute('aria-label', t('a11y.map'));
+/** Wires the EN | ES | RU segmented control. */
+function initLangSwitcher() {
+    for (const button of document.querySelectorAll('.lang-btn')) {
+        button.addEventListener('click', () => setLang(button.dataset.lang));
+    }
+}
 
+/** Reflects the language in force on the segmented control. */
+function updateLangSwitcher() {
+    const lang = getLang();
+    for (const button of document.querySelectorAll('.lang-btn')) {
+        const active = button.dataset.lang === lang;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+    }
+}
+
+function init() {
+    initLang();
+    // Before applyTranslations: the recentre control carries its own keys, and
+    // it does not exist until the map is built.
     initMap(recentre);
+    applyTranslations();
+
+    initLangSwitcher();
+    updateLangSwitcher();
+    onLangChange(() => {
+        applyTranslations();
+        updateLangSwitcher();
+        render();
+    });
+
     showStatus('status.locating');
     readPosition();
 

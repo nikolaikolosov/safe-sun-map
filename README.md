@@ -30,8 +30,12 @@ look past.
    whenever a parked tab comes back to the foreground.
 
 There is no dark mode by design: the five bands are only distinguishable from one another over
-a light, low-saturation basemap. There is no language switcher either — copy follows the
-browser's language (English, Spanish or Russian).
+a light, low-saturation basemap.
+
+Copy is in English, Spanish and Russian. The page opens in whichever of those the browser asks
+for, and the EN | ES | RU control on the card overrides that for good — a stored choice beats
+the browser on every later visit, because someone who tapped RU on a Spanish phone meant it.
+The reading redraws in place on a switch, decimal separator included (`4.0` / `4,2`).
 
 ## Layout
 
@@ -39,13 +43,14 @@ Buildless static site, deployed straight from `main` by GitHub Pages. `npm` is d
 only; nothing is bundled and there is no server.
 
 ```
-index.html        markup and the meta-tag CSP
-css/styles.css    one screen's worth of styles
-src/uv.js         the domain model: bands, rounding, the API call
-src/map.js        Leaflet — basemap, "you are here", recentre control
-src/i18n.js       copy in en/es/ru
-src/app.js        wiring: position → reading → wash
-tests/uv.test.js  band boundaries, API failure modes, copy completeness
+index.html          markup and the meta-tag CSP
+css/styles.css      one screen's worth of styles
+src/uv.js           the domain model: bands, rounding, formatting, the API call
+src/map.js          Leaflet — basemap, "you are here", recentre control
+src/i18n.js         copy in en/es/ru, and the language runtime
+src/app.js          wiring: position → reading → wash, and the switcher
+tests/uv.test.js    band boundaries, formatting, API failure modes
+tests/i18n.test.js  language resolution, persistence, copy completeness
 ```
 
 ## Verification
