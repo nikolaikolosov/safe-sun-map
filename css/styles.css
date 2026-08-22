@@ -74,11 +74,18 @@ body {
 
 /* Colour and opacity are written onto this element by `showReading`; the
    values below are only what shows before the first reading lands, when the
-   wash is transparent anyway. */
+   wash is transparent anyway.
+   z-index 750 is the one number that matters here. Leaflet stacks its map
+   panes from 200 (tiles) to 700 (popups) and its control corners at 1000, so
+   750 washes everything that IS the map while leaving the buttons and the
+   attribution untouched — they stay the same white as the card instead of
+   being tinted along with the ground they sit on. Being a child of the
+   container rather than of `.leaflet-map-pane` is what keeps it still while
+   the map is panned. */
 #veil {
-    position: fixed;
+    position: absolute;
     inset: 0;
-    z-index: 1;
+    z-index: 750;
     background-color: #94a3b8;
     opacity: 0;
     pointer-events: none;
@@ -241,12 +248,30 @@ body {
 
 /* ---------- Leaflet controls ---------- */
 
+/* Now that the wash passes under them, the buttons are made of the same
+   material as the card: the same white, a soft shadow instead of Leaflet's
+   2px black-alpha border, and a radius from the same family. A dark border
+   over white would read as a fill of its own. */
+.leaflet-bar {
+    border: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    /* Separates white buttons from whatever colour the map has turned. */
+    box-shadow: 0 2px 10px rgb(15 23 42 / 20%);
+}
+
 .leaflet-bar a {
     width: 34px;
     height: 34px;
     line-height: 34px;
     font-size: 18px;
     color: var(--ink);
+    background: var(--surface);
+    border-bottom-color: var(--hairline);
+}
+
+.leaflet-bar a:last-child {
+    border-bottom: 0;
 }
 
 .recentre a {
@@ -265,13 +290,6 @@ body {
 .leaflet-control-attribution {
     font-size: 10px;
     background: rgb(255 255 255 / 75%) !important;
-}
-
-/* The controls sit under the wash, so on the strongest bands they need a
-   little more contrast to stay findable. */
-.leaflet-control-zoom,
-.recentre {
-    box-shadow: 0 1px 6px rgb(15 23 42 / 25%);
 }
 
 /* ---------- Help sheet ---------- */
