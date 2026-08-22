@@ -253,6 +253,15 @@ body {
     font-size: 20px;
 }
 
+/* A serif italic "i" — the conventional info mark, and it needs no glyph the
+   system font might not have. */
+.help-open a {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 19px;
+}
+
 .leaflet-control-attribution {
     font-size: 10px;
     background: rgb(255 255 255 / 75%) !important;
@@ -263,6 +272,117 @@ body {
 .leaflet-control-zoom,
 .recentre {
     box-shadow: 0 1px 6px rgb(15 23 42 / 25%);
+}
+
+/* ---------- Help sheet ---------- */
+
+#help {
+    width: calc(100% - 2 * var(--gutter));
+    max-width: 380px;
+    max-height: min(80vh, 640px);
+    padding: 20px;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink-muted);
+    box-shadow: var(--shadow);
+    overflow-y: auto;
+    /* Any margin resolves against the dialog's own centring box, so `auto` on
+       all sides is what actually centres it in both axes. */
+    margin: auto;
+}
+
+#help::backdrop {
+    background: rgb(15 23 42 / 45%);
+}
+
+.help-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+#help h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+#help h3 {
+    margin: 18px 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+
+#help p {
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.help-close {
+    flex: none;
+    /* Pulled into the padding so the × sits in the corner while keeping a tap
+       target well past the 24px floor. */
+    margin: -8px -8px 0 0;
+    padding: 8px 10px;
+    border: 0;
+    background: transparent;
+    color: var(--ink-faint);
+    font: inherit;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.help-levels {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.help-levels li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 14px;
+}
+
+.help-swatch {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+/* Fixed width so the five band names line up in a column rather than stepping
+   in and out with the width of each range. */
+.help-range {
+    flex: none;
+    width: 68px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.help-band {
+    color: var(--ink-muted);
+}
+
+.help-source {
+    color: var(--ink-faint);
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+}
+
+.help-close:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

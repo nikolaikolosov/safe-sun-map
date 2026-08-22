@@ -8,6 +8,7 @@
 
 import { fetchUv, formatUv, uvBand } from './uv.js';
 import { initMap, recentre, showUser } from './map.js';
+import { initHelp } from './help.js';
 import {
     applyTranslations,
     getLang,
@@ -252,9 +253,9 @@ function updateLangSwitcher() {
 
 function init() {
     initLang();
-    // Before applyTranslations: the recentre control carries its own keys, and
-    // it does not exist until the map is built.
-    initMap(recentre);
+    // Before applyTranslations: the bottom-right controls carry their own keys,
+    // and they do not exist until the map is built.
+    initMap({ onRecentre: recentre, onHelp: initHelp() });
     applyTranslations();
 
     initLangSwitcher();

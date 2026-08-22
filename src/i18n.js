@@ -39,6 +39,20 @@ export const STRINGS = {
         'lang.groupAria': 'Change language',
         'a11y.map': 'World map showing your location',
         'a11y.recentre': 'Centre the map on my location',
+        'help.open': 'About the UV index',
+        'help.close': 'Close',
+        'help.title': 'The UV index',
+        'help.what':
+            "A measure of how strong the sun's ultraviolet radiation is at ground level " +
+            'right now. It starts at 0 and has no fixed ceiling. It peaks around midday, ' +
+            'and runs higher in summer, nearer the equator, at altitude, and over snow, ' +
+            'water or sand. Light cloud barely lowers it.',
+        'help.levels': 'Levels',
+        'help.effect':
+            'Ultraviolet is what burns skin, and over the years ages it and raises the risk ' +
+            'of skin cancer. It damages the eyes too. The higher the number, the less time ' +
+            'unprotected skin can take — at 11 it is minutes.',
+        'help.source': 'Readings from Open-Meteo. Scale: the WHO/WMO Global Solar UV Index.',
     },
     es: {
         'band.low': 'Bajo',
@@ -61,6 +75,20 @@ export const STRINGS = {
         'lang.groupAria': 'Cambiar idioma',
         'a11y.map': 'Mapa del mundo con tu ubicación',
         'a11y.recentre': 'Centrar el mapa en mi ubicación',
+        'help.open': 'Sobre el índice UV',
+        'help.close': 'Cerrar',
+        'help.title': 'El índice UV',
+        'help.what':
+            'Mide qué tan fuerte es la radiación ultravioleta del sol a nivel del suelo en ' +
+            'este momento. Arranca en 0 y no tiene techo fijo. Llega al máximo cerca del ' +
+            'mediodía, y sube en verano, cerca del ecuador, en altura y sobre nieve, agua o ' +
+            'arena. Una nubosidad liviana casi no lo baja.',
+        'help.levels': 'Niveles',
+        'help.effect':
+            'El ultravioleta es lo que quema la piel y, con los años, la envejece y aumenta ' +
+            'el riesgo de cáncer de piel. También daña los ojos. Cuanto más alto el número, ' +
+            'menos aguanta la piel sin protección: en 11 son minutos.',
+        'help.source': 'Datos de Open-Meteo. Escala: Índice UV Solar Mundial de la OMS/OMM.',
     },
     ru: {
         'band.low': 'Низкий',
@@ -83,6 +111,20 @@ export const STRINGS = {
         'lang.groupAria': 'Сменить язык',
         'a11y.map': 'Карта мира с вашим местоположением',
         'a11y.recentre': 'Показать моё местоположение',
+        'help.open': 'Об УФ-индексе',
+        'help.close': 'Закрыть',
+        'help.title': 'УФ-индекс',
+        'help.what':
+            'Показывает, насколько сильно ультрафиолетовое излучение солнца у поверхности ' +
+            'земли прямо сейчас. Начинается с 0, верхней границы нет. Максимум — около ' +
+            'полудня; выше летом, ближе к экватору, в горах и над снегом, водой или песком. ' +
+            'Лёгкая облачность почти не снижает его.',
+        'help.levels': 'Уровни',
+        'help.effect':
+            'Ультрафиолет вызывает ожоги, а с годами — старение кожи и повышенный риск рака ' +
+            'кожи. Он же вредит глазам. Чем выше число, тем меньше времени выдерживает ' +
+            'незащищённая кожа: при 11 счёт идёт на минуты.',
+        'help.source': 'Данные: Open-Meteo. Шкала: глобальный солнечный УФ-индекс ВОЗ/ВМО.',
     },
 };
 

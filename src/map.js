@@ -45,10 +45,10 @@ let centred = false;
 /**
  * Builds the map in `#map` and returns it.
  *
- * @param {() => void} onRecentre - invoked by the recentre control
+ * @param {{onRecentre: () => void, onHelp: () => void}} handlers
  * @returns {L.Map}
  */
-export function initMap(onRecentre) {
+export function initMap({ onRecentre, onHelp }) {
     map = L.map('map', {
         center: WORLD_VIEW.center,
         zoom: WORLD_VIEW.zoom,
@@ -63,22 +63,30 @@ export function initMap(onRecentre) {
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     map.attributionControl.setPrefix('');
 
-    addRecentreControl(onRecentre);
+    // Leaflet PREPENDS controls in the bottom corners, so the stack reads
+    // bottom-up in the order added: zoom, then recentre above it, then help on
+    // top. Least-used furthest from the thumb.
+    //
+    // A way back to yourself after panning matters more than it looks: without
+    // it the map has a dead end — scroll off to another continent on a phone
+    // and the only route home is a reload, which also throws away the reading.
+    addBarControl({ glyph: '◎', className: 'recentre', key: 'a11y.recentre', onClick: onRecentre });
+    addBarControl({ glyph: 'i', className: 'help-open', key: 'help.open', onClick: onHelp });
+
     return map;
 }
 
 /**
- * A way back to yourself after panning.
+ * One button in the bottom-right stack, styled as a Leaflet bar so it sits
+ * flush with the zoom control.
  *
- * Without it the map has a dead end: scroll off to another continent on a phone
- * and the only route home is a page reload, which also throws away the reading.
- *
- * @param {() => void} onRecentre
+ * @param {{glyph: string, className: string, key: string, onClick: () => void}} spec
  */
-function addRecentreControl(onRecentre) {
+function addBarControl({ glyph, className, key, onClick }) {
     const control = L.control({ position: 'bottomright' });
+
     control.onAdd = () => {
-        const container = L.DomUtil.create('div', 'leaflet-bar recentre');
+        const container = L.DomUtil.create('div', `leaflet-bar ${className}`);
         // Without this a tap on the button also reaches the map underneath and
         // is read as a double-click zoom.
         L.DomEvent.disableClickPropagation(container);
@@ -86,19 +94,21 @@ function addRecentreControl(onRecentre) {
         const button = L.DomUtil.create('a', '', container);
         button.href = '#';
         button.setAttribute('role', 'button');
-        button.textContent = '◎';
-        // The keys travel with the element so `applyTranslations` re-labels it
+        button.textContent = glyph;
+        // The key travels with the element so `applyTranslations` re-labels it
         // on a language switch, the same as the markup in index.html.
-        button.dataset.i18nAria = 'a11y.recentre';
-        button.dataset.i18nTitle = 'a11y.recentre';
-        button.title = t('a11y.recentre');
-        button.setAttribute('aria-label', t('a11y.recentre'));
+        button.dataset.i18nAria = key;
+        button.dataset.i18nTitle = key;
+        button.title = t(key);
+        button.setAttribute('aria-label', t(key));
+
         L.DomEvent.on(button, 'click', (event) => {
             L.DomEvent.stop(event);
-            onRecentre();
+            onClick();
         });
         return container;
     };
+
     control.addTo(map);
 }
 

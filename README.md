@@ -37,6 +37,10 @@ for, and the EN | ES | RU control on the card overrides that for good — a stor
 the browser on every later visit, because someone who tapped RU on a Spanish phone meant it.
 The reading redraws in place on a switch, decimal separator included (`4.0` / `4,2`).
 
+The ⓘ control in the bottom-right opens a one-screen explainer: what the index measures, the
+five levels as a colour legend, and what UV does to skin and eyes. The legend is generated from
+the same band table the map is coloured from, so it cannot drift from the behaviour.
+
 ## Layout
 
 Buildless static site, deployed straight from `main` by GitHub Pages. `npm` is dev tooling
@@ -46,7 +50,8 @@ only; nothing is bundled and there is no server.
 index.html          markup and the meta-tag CSP
 css/styles.css      one screen's worth of styles
 src/uv.js           the domain model: bands, rounding, formatting, the API call
-src/map.js          Leaflet — basemap, "you are here", recentre control
+src/map.js          Leaflet — basemap, "you are here", the bottom-right controls
+src/help.js         the ⓘ sheet: what the index is, the levels, what it does
 src/i18n.js         copy in en/es/ru, and the language runtime
 src/app.js          wiring: position → reading → wash, and the switcher
 tests/uv.test.js    band boundaries, formatting, API failure modes

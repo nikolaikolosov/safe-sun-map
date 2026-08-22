@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 
-import { UV_BANDS, fetchUv, formatUv, roundUv, uvBand } from '../src/uv.js';
+import { UV_BANDS, bandRanges, fetchUv, formatUv, roundUv, uvBand } from '../src/uv.js';
 
 describe('roundUv', () => {
     it('reports one decimal', () => {
@@ -26,6 +26,29 @@ describe('formatUv', () => {
     it('formats the rounded value, matching what the band was picked from', () => {
         expect(formatUv(2.94, 'en')).toBe('2.9');
         expect(formatUv(2.95, 'en')).toBe('3.0');
+    });
+});
+
+describe('bandRanges', () => {
+    it('reads back the bands the product was specified with', () => {
+        expect(bandRanges('en')).toEqual(['0–2.9', '3–5.9', '6–7.9', '8–10.9', '11+']);
+    });
+
+    it('uses the locale separator, like the reading on the card', () => {
+        expect(bandRanges('ru')).toEqual(['0–2,9', '3–5,9', '6–7,9', '8–10,9', '11+']);
+    });
+
+    it('covers every band, and every range ends where the next begins', () => {
+        const ranges = bandRanges('en');
+        expect(ranges).toHaveLength(UV_BANDS.length);
+
+        // The label of a band must classify back into that same band: the help
+        // legend and the map cannot be allowed to disagree.
+        ranges.forEach((range, i) => {
+            const [from, to] = range.replace('+', '').split('–').map(Number);
+            expect(uvBand(from).id).toBe(UV_BANDS[i].id);
+            if (!Number.isNaN(to)) expect(uvBand(to).id).toBe(UV_BANDS[i].id);
+        });
     });
 });
 
