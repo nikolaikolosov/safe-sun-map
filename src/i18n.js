@@ -54,7 +54,7 @@ export const STRINGS = {
             'unprotected skin can take — at 11 it is minutes.',
         'help.source': 'Readings from Open-Meteo. Scale: the WHO/WMO Global Solar UV Index.',
         'support.label': 'Support the author',
-        'support.aria': 'Support the author on PayPal (opens in a new tab)',
+        'support.aria': 'Support the author on Ko-fi (opens in a new tab)',
     },
     es: {
         'band.low': 'Bajo',
@@ -92,7 +92,7 @@ export const STRINGS = {
             'menos aguanta la piel sin protección: en 11 son minutos.',
         'help.source': 'Datos de Open-Meteo. Escala: Índice UV Solar Mundial de la OMS/OMM.',
         'support.label': 'Apoyar al autor',
-        'support.aria': 'Apoyá al autor por PayPal (se abre en otra pestaña)',
+        'support.aria': 'Apoyá al autor en Ko-fi (se abre en otra pestaña)',
     },
     ru: {
         'band.low': 'Низкий',
@@ -130,7 +130,7 @@ export const STRINGS = {
             'незащищённая кожа: при 11 счёт идёт на минуты.',
         'help.source': 'Данные: Open-Meteo. Шкала: глобальный солнечный УФ-индекс ВОЗ/ВМО.',
         'support.label': 'Поддержать автора',
-        'support.aria': 'Поддержать автора через PayPal (откроется в новой вкладке)',
+        'support.aria': 'Поддержать автора на Ko-fi (откроется в новой вкладке)',
     },
 };
 
