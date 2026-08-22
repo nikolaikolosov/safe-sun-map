@@ -317,10 +317,13 @@ body {
     transition: color 200ms ease;
 }
 
+/* An emoji heart, so no `color` — the glyph carries its own. The explicit
+   emoji stack keeps it from falling back to the monochrome text form on a
+   platform whose UI font happens to cover U+2764 itself. */
 .support-heart {
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
     font-size: 13px;
     line-height: 1;
-    color: #e11d48;
 }
 
 @media (hover: hover) {
