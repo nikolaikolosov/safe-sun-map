@@ -342,7 +342,12 @@ body {
 #help {
     width: calc(100% - 2 * var(--gutter));
     max-width: 380px;
-    max-height: min(80vh, 640px);
+    /* Russian is the longest of the three and lands at 638px on a 375×812
+       phone. The old 640px ceiling left two pixels of headroom, which is the
+       kind of margin that turns into a 2px scrollbar the next time a word is
+       added. Below this the sheet scrolls, which is fine — it just should not
+       start doing it over a rounding error. */
+    max-height: min(85vh, 720px);
     padding: 20px;
     border: 0;
     border-radius: var(--radius);
