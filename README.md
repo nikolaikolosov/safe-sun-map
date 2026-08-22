@@ -1,6 +1,6 @@
 # Safe Sun Map
 
-**[nikolaikolosov.github.io/safe-sun-map](https://nikolaikolosov.github.io/safe-sun-map)**
+**Live: [nikolaikolosov.github.io/safe-sun-map](https://nikolaikolosov.github.io/safe-sun-map/)**
 
 Open it on your phone and it washes the map in one of five colours — the UV index where you
 are standing. Green means go outside. Violet means don't.
@@ -46,8 +46,11 @@ third-party widget, nothing loaded from a payment host.
 
 ## Layout
 
-Buildless static site, deployed straight from `main` by GitHub Pages. `npm` is dev tooling
-only; nothing is bundled and there is no server.
+Buildless static site. GitHub Pages serves `main` as it stands — no build step, no bundler,
+no server; `npm` is dev tooling only. A merge reaches
+[the live site](https://nikolaikolosov.github.io/safe-sun-map/) a minute or two later, and
+returning visitors keep the previous copy for up to ten more (Pages sends
+`Cache-Control: max-age=600`).
 
 ```
 index.html          markup and the meta-tag CSP
