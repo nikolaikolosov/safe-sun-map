@@ -86,9 +86,13 @@ function addRecentreControl(onRecentre) {
         const button = L.DomUtil.create('a', '', container);
         button.href = '#';
         button.setAttribute('role', 'button');
+        button.textContent = '◎';
+        // The keys travel with the element so `applyTranslations` re-labels it
+        // on a language switch, the same as the markup in index.html.
+        button.dataset.i18nAria = 'a11y.recentre';
+        button.dataset.i18nTitle = 'a11y.recentre';
         button.title = t('a11y.recentre');
         button.setAttribute('aria-label', t('a11y.recentre'));
-        button.textContent = '◎';
         L.DomEvent.on(button, 'click', (event) => {
             L.DomEvent.stop(event);
             onRecentre();

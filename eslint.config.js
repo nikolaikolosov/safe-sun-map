@@ -19,7 +19,19 @@ export default [
         },
     },
     {
+        // Vitest runs these in jsdom, so they see both worlds.
         files: ['tests/**/*.js'],
+        languageOptions: {
+            ecmaVersion: 2023,
+            sourceType: 'module',
+            globals: {
+                ...globals.node,
+                ...globals.browser,
+            },
+        },
+    },
+    {
+        files: ['*.config.js'],
         languageOptions: {
             ecmaVersion: 2023,
             sourceType: 'module',

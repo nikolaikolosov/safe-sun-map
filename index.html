@@ -32,7 +32,12 @@
     </head>
 
     <body>
-        <div id="map" role="application" aria-label="World map showing your location"></div>
+        <div
+            id="map"
+            role="application"
+            aria-label="World map showing your location"
+            data-i18n-aria="a11y.map"
+        ></div>
 
         <!-- The answer. A wash over the whole viewport rather than a shape on
              the map, because the reading is about the visitor, not about a
@@ -41,8 +46,25 @@
         <div id="veil" aria-hidden="true"></div>
 
         <main id="card" aria-live="polite">
+            <!-- The label stays up in every state: it titles the card, so it
+                 reads correctly above a status line as well as above a
+                 reading — which is what keeps the switcher on one row with
+                 something, instead of on a row of its own. -->
+            <div class="card-head">
+                <p id="uv-label" class="card-label" data-i18n="label.uv">UV index</p>
+                <div
+                    class="lang-switcher"
+                    role="group"
+                    aria-label="Change language"
+                    data-i18n-aria="lang.groupAria"
+                >
+                    <button type="button" class="lang-btn" data-lang="en" lang="en">EN</button>
+                    <button type="button" class="lang-btn" data-lang="es" lang="es">ES</button>
+                    <button type="button" class="lang-btn" data-lang="ru" lang="ru">RU</button>
+                </div>
+            </div>
+
             <div id="reading" hidden>
-                <p id="uv-label" class="card-label">UV index</p>
                 <p class="card-headline">
                     <span id="uv-value">—</span>
                     <span id="uv-band"></span>
@@ -53,7 +75,9 @@
 
             <div id="status" class="card-status">
                 <p id="status-text"></p>
-                <button type="button" id="retry" class="retry" hidden>Retry</button>
+                <button type="button" id="retry" class="retry" data-i18n="status.retry" hidden>
+                    Retry
+                </button>
             </div>
         </main>
 
