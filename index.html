@@ -85,6 +85,25 @@
             </div>
         </main>
 
+        <!-- Bottom-left, the one corner the map controls leave empty. Chrome
+             like the card, so it sits at the card's layer and the wash passes
+             underneath it. The label is on the inner span, not the anchor:
+             `applyTranslations` replaces textContent, which would take the
+             heart with it. -->
+        <a
+            class="support"
+            href="https://ko-fi.com/nikolaikolosov"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Support the author on Ko-fi (opens in a new tab)"
+            title="Support the author on Ko-fi (opens in a new tab)"
+            data-i18n-aria="support.aria"
+            data-i18n-title="support.aria"
+        >
+            <span class="support-heart" aria-hidden="true">♥</span>
+            <span data-i18n="support.label">Support the author</span>
+        </a>
+
         <!-- Help sheet, opened by the ⓘ control on the map. A native <dialog>:
              focus trapping, Esc-to-close and an inert page behind it all come
              with the element. -->
