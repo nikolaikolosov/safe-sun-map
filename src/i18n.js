@@ -43,15 +43,15 @@ export const STRINGS = {
         'help.close': 'Close',
         'help.title': 'The UV index',
         'help.what':
-            "A measure of how strong the sun's ultraviolet radiation is at ground level " +
-            'right now. It starts at 0 and has no fixed ceiling. It peaks around midday, ' +
-            'and runs higher in summer, nearer the equator, at altitude, and over snow, ' +
-            'water or sand. Light cloud barely lowers it.',
+            "Shows the level of the sun's ultraviolet radiation at ground level. It starts " +
+            'at 0 and has no upper limit. It is highest around midday. It rises in summer, ' +
+            'closer to the equator, and out in the open near reflective surfaces such as ' +
+            'water, sand or mountains. Light cloud barely lowers the UV index.',
         'help.levels': 'Levels',
         'help.effect':
-            'Ultraviolet is what burns skin, and over the years ages it and raises the risk ' +
-            'of skin cancer. It damages the eyes too. The higher the number, the less time ' +
-            'unprotected skin can take — at 11 it is minutes.',
+            'Ultraviolet causes burns and, over the years, ageing of the skin and a raised ' +
+            'risk of melanoma. It harms the eyes too. The higher the number, the less time ' +
+            'unprotected skin can take: at 11 and above, a few minutes are enough to burn.',
         'help.source': 'Readings from Open-Meteo. Scale: the WHO/WMO Global Solar UV Index.',
         'support.label': 'Support the author',
         'support.aria': 'Support the author on Ko-fi (opens in a new tab)',
@@ -81,15 +81,17 @@ export const STRINGS = {
         'help.close': 'Cerrar',
         'help.title': 'El índice UV',
         'help.what':
-            'Mide qué tan fuerte es la radiación ultravioleta del sol a nivel del suelo en ' +
-            'este momento. Arranca en 0 y no tiene techo fijo. Llega al máximo cerca del ' +
-            'mediodía, y sube en verano, cerca del ecuador, en altura y sobre nieve, agua o ' +
-            'arena. Una nubosidad liviana casi no lo baja.',
+            'Muestra el nivel de radiación ultravioleta del sol a nivel del suelo. Arranca ' +
+            'en 0 y no tiene límite superior. Alcanza su máximo cerca del mediodía. Sube en ' +
+            'verano, al acercarse al ecuador, y en espacios abiertos cerca de superficies ' +
+            'reflectantes como el agua, la arena o la montaña. Una nubosidad liviana casi no ' +
+            'baja el índice UV.',
         'help.levels': 'Niveles',
         'help.effect':
-            'El ultravioleta es lo que quema la piel y, con los años, la envejece y aumenta ' +
-            'el riesgo de cáncer de piel. También daña los ojos. Cuanto más alto el número, ' +
-            'menos aguanta la piel sin protección: en 11 son minutos.',
+            'El ultravioleta provoca quemaduras y, con los años, envejecimiento de la piel y ' +
+            'un mayor riesgo de melanoma. También daña los ojos. Cuanto más alto el número, ' +
+            'menos aguanta la piel sin protección: con 11 o más, bastan unos pocos minutos ' +
+            'para quemarse.',
         'help.source': 'Datos de Open-Meteo. Escala: Índice UV Solar Mundial de la OMS/OMM.',
         'support.label': 'Apoyar al autor',
         'support.aria': 'Apoyá al autor en Ko-fi (se abre en otra pestaña)',
@@ -119,15 +121,16 @@ export const STRINGS = {
         'help.close': 'Закрыть',
         'help.title': 'УФ-индекс',
         'help.what':
-            'Показывает, насколько сильно ультрафиолетовое излучение солнца у поверхности ' +
-            'земли прямо сейчас. Начинается с 0, верхней границы нет. Максимум — около ' +
-            'полудня; выше летом, ближе к экватору, в горах и над снегом, водой или песком. ' +
-            'Лёгкая облачность почти не снижает его.',
+            'Показывает уровень ультрафиолетового излучения Солнца у поверхности земли. ' +
+            'Начинается с 0, верхней границы нет. Максимальное значение около полудня. ' +
+            'Повышается летом, при приближении к экватору, а также на открытом пространстве ' +
+            'рядом с отражающими поверхностями, такими как водная гладь, песок или горы. ' +
+            'Лёгкая облачность почти не снижает УФ-индекс.',
         'help.levels': 'Уровни',
         'help.effect':
-            'Ультрафиолет вызывает ожоги, а с годами — старение кожи и повышенный риск рака ' +
-            'кожи. Он же вредит глазам. Чем выше число, тем меньше времени выдерживает ' +
-            'незащищённая кожа: при 11 счёт идёт на минуты.',
+            'Ультрафиолет вызывает ожоги, а с годами — старение кожи и повышенный риск ' +
+            'меланомы. Также вредит глазам. Чем выше число, тем меньше времени выдерживает ' +
+            'незащищённая кожа: при 11 и выше достаточно нескольких минут для ожога.',
         'help.source': 'Данные: Open-Meteo. Шкала: глобальный солнечный УФ-индекс ВОЗ/ВМО.',
         'support.label': 'Поддержать автора',
         'support.aria': 'Поддержать автора на Ko-fi (откроется в новой вкладке)',
