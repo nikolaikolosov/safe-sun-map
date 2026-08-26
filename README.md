@@ -30,9 +30,11 @@ look past.
    whenever a parked tab comes back to the foreground.
 
 There is no dark mode by design: the five bands are only distinguishable from one another over
-a light, low-saturation basemap. Tiles come from OpenStreetMap's own server — no API key, no
-account — and are desaturated in CSS, because the standard OSM style is a full-colour map and
-five translucent hues cannot be told apart over a sixth.
+a light, low-saturation basemap. Tiles are Esri's World Light Gray Base — no API key, no
+account, and a grey canvas by design, so nothing has to be desaturated to keep the five washes
+apart. It is the same basemap as the sibling
+[Montevideo bus map](https://nikolaikolosov.github.io/montevideo-bus-map/), which means a
+provider that breaks breaks both projects at once, and gets fixed once.
 
 Copy is in English, Spanish and Russian. The page opens in whichever of those the browser asks
 for, and the EN | ES | RU control on the card overrides that for good — a stored choice beats
@@ -83,6 +85,6 @@ Geolocation needs a secure context, so `localhost` works but a LAN IP does not.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). Basemap tiles © OpenStreetMap contributors, served by the
-OSMF under its [Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/).
+MIT — see [LICENSE](LICENSE). Basemap tiles © Esri — Esri, HERE, Garmin,
+© OpenStreetMap contributors.
 UV data © Open-Meteo (CC BY 4.0).

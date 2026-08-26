@@ -6,25 +6,36 @@
 import { t } from './i18n.js';
 
 /**
- * OpenStreetMap's own tile server — no key, no account, no quota to register.
+ * Esri's World Light Gray Base — no key, no account, and the same basemap the
+ * studio's Montevideo map runs on, so the two projects fail and get fixed
+ * together instead of drifting apart.
  *
  * It replaced CARTO's Positron, which began answering with an "API KEY
  * REQUIRED" watermark image under HTTP 200. Nothing errored; the map just
  * quietly turned into grey placeholder tiles. Whatever provider sits here next,
  * that is the failure to expect: a 200 carrying the wrong picture.
  *
- * The URL is spelled exactly as the OSMF Tile Usage Policy requires — that
- * host, no `{s}` subdomain rotation, HTTPS, and no `{r}` retina suffix, which
- * this server does not serve. Attribution is mandatory and is rendered by
- * Leaflet's own control. The policy also asks that a valid Referer reaches the
- * server, so the page's `referrer` meta must stay at `strict-origin-...` or
- * looser; `no-referrer` would break compliance rather than just privacy.
+ * Note the axis order — Esri's MapServer is `{z}/{y}/{x}`, row before column,
+ * the reverse of the usual tile template. One host, no `{s}` rotation.
  *
- * @see https://operations.osmfoundation.org/policies/tiles/
+ * Being a grey canvas by design, it needs no desaturation to keep the five
+ * washes apart, which is the property this app actually depends on.
  */
-export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const TILE_URL =
+    'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/' +
+    'World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 export const TILE_ATTRIBUTION =
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    'Tiles &copy; <a href="https://www.esri.com/">Esri</a> — Esri, HERE, Garmin, &copy; ' +
+    '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+/**
+ * Deepest zoom Esri has data for. Past it the server returns a grey "Map data
+ * not yet available" placeholder — another 200 carrying the wrong picture.
+ * `LOCATED_ZOOM` and the map's own `maxZoom` are both 16 today, so this is a
+ * guard rather than a fix: raise either of those and Leaflet upscales the last
+ * real tiles instead of papering the screen with that text.
+ */
+const TILE_MAX_NATIVE_ZOOM = 16;
 
 /**
  * The world, before we know anything about the visitor — and the view anyone
@@ -67,7 +78,11 @@ export function initMap({ onRecentre, onHelp }) {
         attributionControl: true,
     });
 
-    L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 16 }).addTo(map);
+    L.tileLayer(TILE_URL, {
+        attribution: TILE_ATTRIBUTION,
+        maxZoom: 16,
+        maxNativeZoom: TILE_MAX_NATIVE_ZOOM,
+    }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     map.attributionControl.setPrefix('');
 
