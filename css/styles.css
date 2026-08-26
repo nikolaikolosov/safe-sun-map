@@ -59,6 +59,17 @@ body {
     background: #e2e8f0;
 }
 
+/* OpenStreetMap's standard style is a full-colour map — green woodland, blue
+   water, pink motorways. The whole page answers by washing that ground in one
+   of five translucent colours, and five hues cannot be told apart over a sixth.
+   Desaturating and lightening the tiles gets back the low-saturation canvas the
+   design needs from a server that asks for no API key.
+   Scoped to the tile pane so the "you are here" dot, the wash and the controls
+   keep their real colours. */
+.leaflet-tile-pane {
+    filter: saturate(0.15) brightness(1.12);
+}
+
 /* The "you are here" dot. A ring rather than a pin: a pin points at a spot it
    cannot actually resolve, and the position here is deliberately coarse. */
 .user-dot {

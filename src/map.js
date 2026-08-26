@@ -6,17 +6,25 @@
 import { t } from './i18n.js';
 
 /**
- * Always the light basemap, at every hour of the day.
+ * OpenStreetMap's own tile server — no key, no account, no quota to register.
  *
- * A dark mode would be actively harmful here: the page answers by washing the
- * map in one of five colours, and those five are only distinguishable from each
- * other over a light, low-saturation ground. There is no night variant to keep
- * in sync, so none is offered.
+ * It replaced CARTO's Positron, which began answering with an "API KEY
+ * REQUIRED" watermark image under HTTP 200. Nothing errored; the map just
+ * quietly turned into grey placeholder tiles. Whatever provider sits here next,
+ * that is the failure to expect: a 200 carrying the wrong picture.
+ *
+ * The URL is spelled exactly as the OSMF Tile Usage Policy requires — that
+ * host, no `{s}` subdomain rotation, HTTPS, and no `{r}` retina suffix, which
+ * this server does not serve. Attribution is mandatory and is rendered by
+ * Leaflet's own control. The policy also asks that a valid Referer reaches the
+ * server, so the page's `referrer` meta must stay at `strict-origin-...` or
+ * looser; `no-referrer` would break compliance rather than just privacy.
+ *
+ * @see https://operations.osmfoundation.org/policies/tiles/
  */
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-const TILE_ATTRIBUTION =
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
-    '&copy; <a href="https://carto.com/attributions">CARTO</a>';
+export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const TILE_ATTRIBUTION =
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 /**
  * The world, before we know anything about the visitor — and the view anyone
