@@ -87,7 +87,7 @@ css/styles.css      one screen's worth of styles
 src/uv.js           the domain model: bands, rounding, formatting, the API call
 src/sun.js          the sun's phases for a date and a coordinate, computed on the device
 src/daylight.js     the daylight card: the 24-hour bar and the phase table
-src/map.js          Leaflet — basemap, "you are here", the bottom-right controls
+src/map.js          Leaflet — basemap, "you are here", and where on screen it sits
 src/help.js         the ⓘ sheet: what the index is, the levels, what it does
 src/i18n.js         copy in en/es/ru, and the language runtime
 src/app.js          wiring: position → reading → wash, and the switcher
