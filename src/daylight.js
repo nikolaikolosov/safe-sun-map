@@ -68,6 +68,29 @@ export function initDaylight(root = document) {
 }
 
 /**
+ * The y of the card's bottom edge as it would be with the phase table closed,
+ * or `null` when the card is not on screen.
+ *
+ * Measured from the disclosure's own row rather than from the card, because
+ * the marker's place on the map is anchored to this and must NOT move when
+ * someone opens the table. The table is the only thing that grows the card, so
+ * the summary row's bottom plus the card's padding is where the card ends in
+ * the closed state — a number that stays the same whether it is open or shut.
+ *
+ * @returns {number|null}
+ */
+export function collapsedBottomPx() {
+    const el = elements();
+    if (!el.card || el.card.hidden) return null;
+
+    const toggle = el.card.querySelector('.daylight-toggle');
+    if (!toggle) return el.card.getBoundingClientRect().bottom;
+
+    const padding = parseFloat(getComputedStyle(el.card).paddingBottom) || 0;
+    return toggle.getBoundingClientRect().bottom + padding;
+}
+
+/**
  * How far a zone is from UTC, in minutes, at a given instant.
  *
  * Read back out of `Intl` rather than assumed: it is the only way to get a

@@ -7,8 +7,8 @@
  */
 
 import { fetchUv, formatUv, uvBand } from './uv.js';
-import { initDaylight, renderDaylight } from './daylight.js';
-import { initMap, recentre, showUser } from './map.js';
+import { collapsedBottomPx, initDaylight, renderDaylight } from './daylight.js';
+import { initMap, showUser } from './map.js';
 import { initHelp } from './help.js';
 import {
     applyTranslations,
@@ -76,12 +76,40 @@ let inFlight = null;
 let view = { kind: 'status', key: 'status.locating', retryable: false };
 
 /**
+ * The last fix, kept so the dot can be re-placed when the layout around it
+ * changes — a rotation, or a language that makes the card a line taller.
+ * @type {{lat: number, lon: number, accuracy: number}|null}
+ */
+let lastFix = null;
+
+/**
  * The device-clock day the daylight card was last drawn for. Its times only
  * change at midnight; the clock tick compares against this so the card does
  * not sit on yesterday until the next fetch, up to ten minutes later.
  * @type {string|null}
  */
 let sunDrawnFor = null;
+
+/**
+ * Puts the dot on screen where the layout says it goes: centred horizontally,
+ * and vertically halfway between the bottom of the daylight card and the
+ * bottom of the screen.
+ *
+ * The card's bottom is taken in its CLOSED state, so opening the phase table
+ * leaves the map exactly where it was — the table is reference material, not a
+ * reason for the ground to shift under it.
+ *
+ * Before the card exists there is nothing to measure from, and the information
+ * column ends at the UV card instead; the dot settles once when the reading
+ * lands and the second card appears.
+ */
+function placeUser() {
+    if (!lastFix) return;
+
+    const stack = document.querySelector('.stack');
+    const above = collapsedBottomPx() ?? stack?.getBoundingClientRect().bottom ?? 0;
+    showUser(lastFix.lat, lastFix.lon, lastFix.accuracy, (above + window.innerHeight) / 2);
+}
 
 /**
  * Great-circle distance in metres. Small enough to inline; the alternative is a
@@ -155,18 +183,23 @@ function render() {
         dom.reading.hidden = false;
         dom.status.hidden = true;
         updateClock();
-        return;
+    } else {
+        dom.statusText.textContent = t(view.key);
+        dom.retry.hidden = !view.retryable;
+        dom.reading.hidden = true;
+        dom.status.hidden = false;
+        renderDaylight(null, null);
+        // The wash goes fully transparent while a status is up: a colour left
+        // on screen next to "location is off" would be read as the answer, and
+        // a wrong answer to "is it safe outside" is worse than none.
+        dom.veil.style.opacity = '0';
     }
 
-    dom.statusText.textContent = t(view.key);
-    dom.retry.hidden = !view.retryable;
-    dom.reading.hidden = true;
-    dom.status.hidden = false;
-    renderDaylight(null, null);
-    // The wash goes fully transparent while a status is up: a colour left on
-    // screen next to "location is off" would be read as the answer, and a wrong
-    // answer to "is it safe outside" is worse than none.
-    dom.veil.style.opacity = '0';
+    // Last, and only here. The dot is placed by measuring the column above it,
+    // so every element that changes that column's height — the reading
+    // replacing the status line most of all — has to be in its final state
+    // first. Measuring mid-render put the dot 37px high.
+    placeUser();
 }
 
 /** Renders local time at the visitor's coordinates, per the provider's zone. */
@@ -229,7 +262,12 @@ function readPosition() {
 
     navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
-            showUser(coords.latitude, coords.longitude, coords.accuracy);
+            lastFix = {
+                lat: coords.latitude,
+                lon: coords.longitude,
+                accuracy: coords.accuracy,
+            };
+            placeUser();
             refreshUv({ lat: coords.latitude, lon: coords.longitude });
         },
         (error) => {
@@ -274,7 +312,7 @@ function init() {
     initLang();
     // Before applyTranslations: the bottom-right controls carry their own keys,
     // and they do not exist until the map is built.
-    initMap({ onRecentre: recentre, onHelp: initHelp() });
+    initMap({ onHelp: initHelp() });
     applyTranslations();
 
     initDaylight();
@@ -296,6 +334,9 @@ function init() {
 
     setInterval(readPosition, UV_REFRESH_MS);
     setInterval(updateClock, CLOCK_TICK_MS);
+
+    // A rotation or a resized window moves the line the dot is anchored to.
+    window.addEventListener('resize', placeUser);
 
     // Coming back to a tab that has been parked for an hour: the reading on it
     // is from whenever it was left, and the whole promise is that the colour is
