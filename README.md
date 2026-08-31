@@ -44,6 +44,11 @@ the place they are standing in. Only the phases a day actually has appear — hi
 78°N is civil twilight, daylight, civil twilight and nothing else — so polar latitudes get a
 shorter table rather than impossible numbers.
 
+The map has one scale and no zoom — four steps back from the deepest tiles Esri has. A UV
+reading is the same number over a whole city, so a zoom control would offer a choice that
+changes nothing about the answer while adding a way to end up somewhere unreadable. Panning
+stays.
+
 There is no dark mode by design: the five bands are only distinguishable from one another over
 a light, low-saturation basemap. Tiles are Esri's World Light Gray Base — no API key, no
 account, and a grey canvas by design, so nothing has to be desaturated to keep the five washes

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { TILE_ATTRIBUTION, TILE_URL } from '../src/map.js';
+import { FIXED_ZOOM, TILE_ATTRIBUTION, TILE_MAX_ZOOM, TILE_URL } from '../src/map.js';
 
 /**
  * The basemap is the one dependency that can fail without failing: CARTO began
@@ -40,5 +40,17 @@ describe('basemap', () => {
         expect(TILE_ATTRIBUTION).toContain('Esri');
         expect(TILE_ATTRIBUTION).toContain('OpenStreetMap');
         expect(TILE_ATTRIBUTION).toContain('https://www.openstreetmap.org/copyright');
+    });
+
+    it('sits four steps back from the deepest tiles there are', () => {
+        // The scale was specified as "zoomed all the way in, then four taps of
+        // the minus button" — so it is written as that subtraction rather than
+        // as a number that would lose the reason if the provider ever changed.
+        expect(FIXED_ZOOM).toBe(TILE_MAX_ZOOM - 4);
+        expect(FIXED_ZOOM).toBe(12);
+    });
+
+    it('never asks for a tile deeper than the provider has', () => {
+        expect(FIXED_ZOOM).toBeLessThanOrEqual(TILE_MAX_ZOOM);
     });
 });
