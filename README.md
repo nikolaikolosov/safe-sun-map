@@ -30,9 +30,10 @@ look past.
    whenever a parked tab comes back to the foreground.
 
 A second card under the reading gives the day its own shape: a bar of the 24 hours divided
-into night, astronomical, nautical and civil twilight and daylight, then the same phases as
-rows with their hours — the layout
-[timeanddate.com](https://www.timeanddate.com/astronomy/) uses. The date comes from the device
+into night, astronomical, nautical and civil twilight and daylight, and behind a tap the same
+phases as rows with their hours — the layout
+[timeanddate.com](https://www.timeanddate.com/astronomy/) uses. The bar answers at a glance
+and stays; the nine rows are reference, and on a small phone they were most of the screen. The date comes from the device
 clock and everything else is computed on the device from that date and the position
 ([src/sun.js](src/sun.js), NOAA's solar algorithm): no extra network call, and the numbers
 roll over at midnight on their own.

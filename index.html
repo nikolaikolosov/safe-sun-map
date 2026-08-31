@@ -107,7 +107,17 @@
                 <div id="daylight-bar" class="daylight-bar" role="img"></div>
                 <div id="daylight-axis" class="daylight-axis" aria-hidden="true"></div>
 
-                <ul id="daylight-phases" class="daylight-phases"></ul>
+                <!-- The bar answers at a glance and stays; the nine rows behind
+                     it are reference, and on a small phone they were most of
+                     the screen. A native <details> brings the keyboard, focus
+                     and screen-reader semantics of a disclosure with it. -->
+                <details class="daylight-details">
+                    <summary class="daylight-toggle">
+                        <span data-i18n="daylight.phases">Phases of the day</span>
+                        <span class="daylight-chevron" aria-hidden="true"></span>
+                    </summary>
+                    <ul id="daylight-phases" class="daylight-phases"></ul>
+                </details>
             </section>
         </div>
 
