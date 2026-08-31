@@ -124,7 +124,7 @@ describe('applyTranslations', () => {
         document.body.innerHTML = `
             <p data-i18n="label.uv">UV index</p>
             <div data-i18n-aria="a11y.map" aria-label="World map showing your location"></div>
-            <a data-i18n-title="a11y.recentre" title="Centre the map on my location">◎</a>
+            <a data-i18n-title="help.open" title="About the UV index">i</a>
         `;
     });
 
@@ -136,7 +136,7 @@ describe('applyTranslations', () => {
         expect(document.querySelector('[data-i18n-aria]').getAttribute('aria-label')).toBe(
             STRINGS.ru['a11y.map'],
         );
-        expect(document.querySelector('[data-i18n-title]').title).toBe(STRINGS.ru['a11y.recentre']);
+        expect(document.querySelector('[data-i18n-title]').title).toBe(STRINGS.ru['help.open']);
     });
 
     it('goes back again on a second switch', () => {

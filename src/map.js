@@ -39,10 +39,10 @@ export const TILE_MAX_ZOOM = 16;
  * tiles Esri has.
  *
  * There is no zooming here at all — no control, no pinch, no wheel, no
- * double-tap. A UV reading is the same number over a whole city, so a scale
- * control offers a choice that changes nothing about the answer while adding
- * a way to end up somewhere unreadable. Panning stays: looking at where you
- * are going is a real thing to want.
+ * double-tap — and no panning either. A UV reading is the same number over a
+ * whole city, so moving or rescaling the map offers choices that change
+ * nothing about the answer while adding ways to end up looking at the wrong
+ * place.
  *
  * `minZoom` and `maxZoom` are both pinned to it rather than only the handlers
  * being switched off, so every remaining route to a zoom — the keyboard's +/−,
@@ -70,52 +70,47 @@ let marker = null;
 /** @type {L.Circle|null} */
 let accuracyCircle = null;
 
-/** Whether the camera has already been taken to the visitor's first fix. */
-let centred = false;
-
 /**
  * Builds the map in `#map` and returns it.
  *
- * @param {{onRecentre: () => void, onHelp: () => void}} handlers
+ * @param {{onHelp: () => void}} handlers
  * @returns {L.Map}
  */
-export function initMap({ onRecentre, onHelp }) {
+export function initMap({ onHelp }) {
     map = L.map('map', {
         center: FALLBACK_CENTER,
         zoom: FIXED_ZOOM,
         minZoom: FIXED_ZOOM,
         maxZoom: FIXED_ZOOM,
-        // Every gesture that changes scale, off at the source as well as
-        // clamped by min/max above. `keyboard` stays on: it is how arrow-key
-        // panning works, and its +/− have nothing left to move.
+        // Nothing the visitor can move. The map is a picture of one place at
+        // one scale: the dot sits where the layout puts it, and a view that
+        // could be dragged or zoomed away from that is a view that can be
+        // wrong. Off at the source as well as clamped by min/max above, so no
+        // single missed handler is load-bearing.
+        dragging: false,
+        keyboard: false,
         zoomControl: false,
         scrollWheelZoom: false,
         doubleClickZoom: false,
         touchZoom: false,
         boxZoom: false,
-        worldCopyJump: true,
         attributionControl: true,
     });
 
     L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: FIXED_ZOOM }).addTo(map);
     map.attributionControl.setPrefix('');
 
-    // Leaflet PREPENDS controls in the bottom corners, so the stack reads
-    // bottom-up in the order added: recentre, then help above it. Least-used
-    // furthest from the thumb.
-    //
-    // A way back to yourself after panning matters more than it looks: without
-    // it the map has a dead end — scroll off to another continent on a phone
-    // and the only route home is a reload, which also throws away the reading.
-    addBarControl({ glyph: '◎', className: 'recentre', key: 'a11y.recentre', onClick: onRecentre });
+    // Only the help button left. The recentre control went with dragging:
+    // once the map cannot be moved off the visitor, there is nowhere to come
+    // back from, and a button that always did nothing would be worse than none.
     addBarControl({ glyph: 'i', className: 'help-open', key: 'help.open', onClick: onHelp });
 
     return map;
 }
 
 /**
- * One button in the bottom-right stack, styled as a Leaflet bar so it sits
- * flush with the zoom control.
+ * A button in the bottom-right corner, styled as a Leaflet bar. Only the help
+ * control uses it now, but it costs nothing to keep general.
  *
  * @param {{glyph: string, className: string, key: string, onClick: () => void}} spec
  */
@@ -124,8 +119,8 @@ function addBarControl({ glyph, className, key, onClick }) {
 
     control.onAdd = () => {
         const container = L.DomUtil.create('div', `leaflet-bar ${className}`);
-        // Without this a tap on the button also reaches the map underneath and
-        // is read as a double-click zoom.
+        // The map ignores gestures now, but a tap that falls through still
+        // lands on the container and can start a text selection over it.
         L.DomEvent.disableClickPropagation(container);
 
         const button = L.DomUtil.create('a', '', container);
@@ -150,18 +145,21 @@ function addBarControl({ glyph, className, key, onClick }) {
 }
 
 /**
- * Draws (or moves) the "you are here" dot and its accuracy halo, and takes the
- * camera there once — on the FIRST fix only.
+ * Draws the "you are here" dot and its accuracy halo, and moves the map so the
+ * dot lands on a given line of the screen.
  *
- * Re-centring on every fix would fight anyone who panned away to look at where
- * they are going, and the reading on the card is theirs either way.
+ * With panning gone the camera is no longer something the visitor shares, so
+ * the view is set on every call rather than only on the first fix: the dot's
+ * place on screen is a layout decision now, and layout changes — a rotation, a
+ * language with a taller card.
  *
  * @param {number} lat
  * @param {number} lon
  * @param {number} accuracy - metres
+ * @param {number} anchorY - where the dot should sit, in pixels from the top
  */
-export function showUser(lat, lon, accuracy) {
-    const latlng = [lat, lon];
+export function showUser(lat, lon, accuracy, anchorY) {
+    const latlng = L.latLng(lat, lon);
 
     if (marker && accuracyCircle) {
         marker.setLatLng(latlng);
@@ -190,14 +188,24 @@ export function showUser(lat, lon, accuracy) {
         }).addTo(map);
     }
 
-    if (!centred) {
-        centred = true;
-        map.setView(latlng, FIXED_ZOOM);
-    }
+    map.setView(centreFor(latlng, anchorY), FIXED_ZOOM, { animate: false });
 }
 
-/** Takes the camera back to the last known position, if there is one. */
-export function recentre() {
-    if (!map || !marker) return;
-    map.setView(marker.getLatLng(), FIXED_ZOOM);
+/**
+ * The centre that puts `latlng` at the middle of the screen horizontally and
+ * on the line `anchorY` vertically.
+ *
+ * A point's screen position is `world − centreWorld + size / 2`, so pinning
+ * that to the place we want and solving for the centre gives
+ * `centreWorld = world + size / 2 − wanted`.
+ *
+ * @param {L.LatLng} latlng
+ * @param {number} anchorY
+ * @returns {L.LatLng}
+ */
+function centreFor(latlng, anchorY) {
+    const size = map.getSize();
+    const wanted = L.point(size.x / 2, anchorY);
+    const world = map.project(latlng, FIXED_ZOOM);
+    return map.unproject(world.add(size.divideBy(2)).subtract(wanted), FIXED_ZOOM);
 }

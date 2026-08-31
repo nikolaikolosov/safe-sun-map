@@ -44,10 +44,15 @@ the place they are standing in. Only the phases a day actually has appear — hi
 78°N is civil twilight, daylight, civil twilight and nothing else — so polar latitudes get a
 shorter table rather than impossible numbers.
 
-The map has one scale and no zoom — four steps back from the deepest tiles Esri has. A UV
-reading is the same number over a whole city, so a zoom control would offer a choice that
-changes nothing about the answer while adding a way to end up somewhere unreadable. Panning
-stays.
+The map does not move. One scale — four steps back from the deepest tiles Esri has — and no
+zooming, dragging or scrolling. A UV reading is the same number over a whole city, so moving
+or rescaling the map would offer choices that change nothing about the answer while adding
+ways to end up looking at the wrong place.
+
+That makes the dot's place on screen a layout decision rather than something the visitor
+drags around: it sits on the vertical axis of symmetry, and halfway between the bottom of the
+daylight card and the bottom of the screen. The card's bottom is taken in its collapsed
+state, so opening the phase table leaves the map exactly where it was.
 
 There is no dark mode by design: the five bands are only distinguishable from one another over
 a light, low-saturation basemap. Tiles are Esri's World Light Gray Base — no API key, no
@@ -82,7 +87,7 @@ css/styles.css      one screen's worth of styles
 src/uv.js           the domain model: bands, rounding, formatting, the API call
 src/sun.js          the sun's phases for a date and a coordinate, computed on the device
 src/daylight.js     the daylight card: the 24-hour bar and the phase table
-src/map.js          Leaflet — basemap, "you are here", the bottom-right controls
+src/map.js          Leaflet — basemap, "you are here", and where on screen it sits
 src/help.js         the ⓘ sheet: what the index is, the levels, what it does
 src/i18n.js         copy in en/es/ru, and the language runtime
 src/app.js          wiring: position → reading → wash, and the switcher
