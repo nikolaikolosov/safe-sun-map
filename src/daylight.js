@@ -165,6 +165,74 @@ export function localSegments(phases, offsetMin) {
 }
 
 /**
+ * Which label a phase gets on the "time left" line. The three twilights share
+ * one: the bar and the table already say which twilight it is, and the line is
+ * answering "how long until this changes", where they are one answer.
+ */
+const REMAINING_KEY = {
+    day: 'remaining.day',
+    night: 'remaining.night',
+    civil: 'remaining.twilight',
+    nautical: 'remaining.twilight',
+    astronomical: 'remaining.twilight',
+};
+
+/**
+ * Local minutes since midnight, keeping the fraction — the countdown is worth
+ * rounding to the nearest minute rather than truncating to it.
+ *
+ * The epoch was midnight UTC, so minutes-since-epoch modulo a day is already
+ * minutes-since-UTC-midnight; the zone offset carries it the rest of the way.
+ *
+ * @param {Date} date
+ * @param {number} offsetMin
+ * @returns {number}
+ */
+export function localMinutes(date, offsetMin) {
+    return (((date.getTime() / 60000 + offsetMin) % MIN_PER_DAY) + MIN_PER_DAY) % MIN_PER_DAY;
+}
+
+/**
+ * How much of the current phase is left, and which phase that is.
+ *
+ * Night is the case this exists for. On the 24-hour axis it is two segments —
+ * one running into midnight and one out of it — but it is a single stretch of
+ * darkness. At 21:00 the answer has to reach into tomorrow's small hours; at
+ * 02:00 it must not, because the date has already turned and the night now
+ * ends inside the day being drawn. Both fall out of one rule: a phase that
+ * touches midnight continues into the next day's first segment when that is
+ * the same phase.
+ *
+ * Returns `null` when the phase does not end within reach — a polar day or
+ * night runs for weeks, and no number of hours would be an honest answer.
+ *
+ * @param {{id: string, startMin: number, endMin: number}[]} segments - today
+ * @param {{id: string, startMin: number, endMin: number}[]} tomorrow
+ * @param {number} nowMin - local minutes since midnight
+ * @returns {{id: string, minutes: number}|null}
+ */
+export function remainingPhase(segments, tomorrow, nowMin) {
+    const current =
+        segments.find((s) => nowMin >= s.startMin && nowMin < s.endMin) ??
+        segments[segments.length - 1];
+    if (!current) return null;
+
+    let end = current.endMin;
+    if (Math.round(end) >= MIN_PER_DAY) {
+        const next = tomorrow[0];
+        // A different phase tomorrow means this one really does end at
+        // midnight; the same phase filling all of tomorrow means a polar
+        // stretch with no end worth printing.
+        if (next && next.id === current.id) {
+            if (Math.round(next.endMin) >= MIN_PER_DAY) return null;
+            end += next.endMin;
+        }
+    }
+
+    return { id: current.id, minutes: end - nowMin };
+}
+
+/**
  * Minutes from local midnight as "07:05". Formatted from the same number the
  * bar is positioned by, so the two can never disagree.
  *
@@ -193,6 +261,54 @@ function formatDuration(ms) {
 }
 
 /**
+ * Everything the card shows, worked out from a position and a zone.
+ *
+ * Tomorrow is computed alongside today because the night on screen at 21:00
+ * ends in tomorrow's small hours, and the line counting it down has to be able
+ * to see there.
+ *
+ * @param {{lat: number, lon: number}} position
+ * @param {string} zone
+ */
+function compute(position, zone) {
+    const now = new Date();
+    const nextDay = new Date(now);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    const offsetMin = zoneOffsetMin(now, zone);
+
+    return {
+        now,
+        segments: localSegments(sunPhases(now, position.lat, position.lon).phases, offsetMin),
+        // Tomorrow gets its own offset: the two differ across a DST change.
+        tomorrow: localSegments(
+            sunPhases(nextDay, position.lat, position.lon).phases,
+            zoneOffsetMin(nextDay, zone),
+        ),
+        nowMin: localMinutes(now, offsetMin),
+        sun: sunTimes(now, position.lat, position.lon),
+    };
+}
+
+/**
+ * Redraws only the "time left" line.
+ *
+ * The countdown has to move, and it is the one part of the card that changes
+ * between position fixes. Rebuilding the bar and the nine rows three times a
+ * minute to advance it would also rebuild the DOM inside an open phase table.
+ *
+ * @param {{lat: number, lon: number}|null} position
+ * @param {string|null} timezone
+ */
+export function refreshRemaining(position, timezone) {
+    const el = elements();
+    if (!el.card || el.card.hidden || !position) return;
+
+    const zone = timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    renderSummary(el.summary, compute(position, zone));
+}
+
+/**
  * Draws the card for a position, or hides it when there is nothing to draw.
  *
  * @param {{lat: number, lon: number}|null} position
@@ -207,11 +323,9 @@ export function renderDaylight(position, timezone) {
         return;
     }
 
-    const now = new Date();
     const zone = timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const { phases } = sunPhases(now, position.lat, position.lon);
-    const summary = sunTimes(now, position.lat, position.lon);
-    const segments = localSegments(phases, zoneOffsetMin(now, zone));
+    const state = compute(position, zone);
+    const { now, segments } = state;
 
     el.place.textContent =
         `${zone.split('/').pop().replace(/_/g, ' ')} · ` +
@@ -221,7 +335,7 @@ export function renderDaylight(position, timezone) {
             month: 'short',
         }).format(now);
 
-    renderSummary(el.summary, summary, segments);
+    renderSummary(el.summary, state);
     renderBar(el.bar, segments);
     renderAxis(el.axis);
     renderPhases(el.phases, segments);
@@ -229,12 +343,12 @@ export function renderDaylight(position, timezone) {
     el.card.hidden = false;
 }
 
-/** Sunrise, sunset and the length of the light — the line people came for. */
-function renderSummary(target, summary, segments) {
+/** Sunrise, sunset, and how long the light — or the dark — has left to run. */
+function renderSummary(target, { segments, tomorrow, nowMin, sun }) {
     const parts = [];
 
-    if (summary.polar) {
-        parts.push(span(t(summary.polar === 'day' ? 'sun.polarDay' : 'sun.polarNight')));
+    if (sun.polar) {
+        parts.push(span(t(sun.polar === 'day' ? 'sun.polarDay' : 'sun.polarNight')));
     } else {
         const day = segments.find((s) => s.id === 'day');
         // Read off the drawn segment, so the headline cannot disagree with the
@@ -243,7 +357,11 @@ function renderSummary(target, summary, segments) {
         parts.push(eventSpan('↓', 'sun.sunset', clockAt(day.endMin)));
     }
 
-    parts.push(span(`${t('daylight.length')} ${formatDuration(summary.daylightMs)}`));
+    const left = remainingPhase(segments, tomorrow, nowMin);
+    if (left) {
+        parts.push(span(`${t(REMAINING_KEY[left.id])} ${formatDuration(left.minutes * 60000)}`));
+    }
+
     target.replaceChildren(...parts);
 }
 

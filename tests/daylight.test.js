@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { initDaylight, localSegments, zoneOffsetMin } from '../src/daylight.js';
+import {
+    initDaylight,
+    localMinutes,
+    localSegments,
+    remainingPhase,
+    zoneOffsetMin,
+} from '../src/daylight.js';
 import { sunPhases } from '../src/sun.js';
 
 const MIN_PER_DAY = 1440;
@@ -211,5 +217,97 @@ describe('initDaylight', () => {
     it('does nothing when the card is not on the page', () => {
         document.body.innerHTML = '';
         expect(() => initDaylight()).not.toThrow();
+    });
+});
+
+describe('localMinutes', () => {
+    it('turns an instant into minutes since local midnight', () => {
+        const noonUtc = new Date(Date.UTC(2026, 7, 31, 12, 0));
+        expect(localMinutes(noonUtc, 0)).toBe(12 * 60);
+        expect(localMinutes(noonUtc, -180)).toBe(9 * 60);
+    });
+
+    it('wraps rather than going negative across midnight', () => {
+        const justAfterUtcMidnight = new Date(Date.UTC(2026, 7, 31, 0, 30));
+        // UTC-3: still 21:30 the previous day.
+        expect(localMinutes(justAfterUtcMidnight, -180)).toBe(21 * 60 + 30);
+    });
+
+    it('keeps the fraction, so a countdown rounds rather than truncates', () => {
+        const withSeconds = new Date(Date.UTC(2026, 7, 31, 12, 0, 30));
+        expect(localMinutes(withSeconds, 0)).toBeCloseTo(720.5, 6);
+    });
+});
+
+describe('remainingPhase', () => {
+    /** Montevideo, 31 Aug 2026 and the day after, as the card lays them out. */
+    const today = axis(on(2026, 8, 31), ...MONTEVIDEO);
+    const tomorrow = axis(on(2026, 9, 1), ...MONTEVIDEO);
+
+    const at = (h, m = 0) => remainingPhase(today, tomorrow, h * 60 + m);
+
+    it('counts down the daylight that is left', () => {
+        // Daylight runs 07:05–18:25, so 12:00 leaves 6h25m.
+        const left = at(12);
+        expect(left.id).toBe('day');
+        expect(Math.round(left.minutes)).toBe(6 * 60 + 25);
+    });
+
+    it('carries the evening night over midnight into tomorrow', () => {
+        // Night starts 19:49 today and ends 05:40 tomorrow. At 21:00 the answer
+        // is 8h40m — NOT the 3h that the segment ending at midnight would give.
+        const left = at(21);
+        expect(left.id).toBe('night');
+        expect(left.minutes).toBeGreaterThan(8 * 60);
+        expect(left.minutes).toBeLessThan(9 * 60);
+        expect(Math.round(left.minutes)).not.toBe(3 * 60);
+    });
+
+    it('stops at the end of the current day once midnight has passed', () => {
+        // 02:00, night ends 05:41 today: 3h41m, with nothing added from
+        // tomorrow — the date change has already happened.
+        const left = at(2);
+        expect(left.id).toBe('night');
+        expect(Math.round(left.minutes)).toBe(3 * 60 + 41);
+    });
+
+    it('meets itself across midnight: 23:59 and 00:01 differ by two minutes', () => {
+        const before = remainingPhase(today, tomorrow, 23 * 60 + 59);
+        // 00:01 the next day is the first minute of tomorrow's own axis, whose
+        // night ends at tomorrow's dawn.
+        const dayAfter = axis(on(2026, 9, 2), ...MONTEVIDEO);
+        const after = remainingPhase(tomorrow, dayAfter, 1);
+        expect(before.id).toBe('night');
+        expect(after.id).toBe('night');
+        expect(before.minutes - after.minutes).toBeCloseTo(2, 0);
+    });
+
+    it('names the twilight it is in', () => {
+        // 18:35 is inside civil twilight, 18:25–18:51.
+        const left = at(18, 35);
+        expect(left.id).toBe('civil');
+        expect(Math.round(left.minutes)).toBe(16);
+    });
+
+    it('has no answer for a polar day', () => {
+        const polarToday = axis(on(2026, 6, 21), ...LONGYEARBYEN);
+        const polarTomorrow = axis(on(2026, 6, 22), ...LONGYEARBYEN);
+        expect(polarToday).toHaveLength(1);
+        expect(remainingPhase(polarToday, polarTomorrow, 12 * 60)).toBeNull();
+    });
+
+    it('has no answer for a night that swallows the whole of tomorrow', () => {
+        const polarToday = axis(on(2026, 12, 21), 90, 0, 'UTC');
+        const polarTomorrow = axis(on(2026, 12, 22), 90, 0, 'UTC');
+        expect(remainingPhase(polarToday, polarTomorrow, 12 * 60)).toBeNull();
+    });
+
+    it('never reports a negative or a whole-day remainder', () => {
+        for (let minute = 0; minute < MIN_PER_DAY; minute += 7) {
+            const left = remainingPhase(today, tomorrow, minute);
+            expect(left).not.toBeNull();
+            expect(left.minutes).toBeGreaterThan(0);
+            expect(left.minutes).toBeLessThanOrEqual(MIN_PER_DAY);
+        }
     });
 });
