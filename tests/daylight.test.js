@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { localSegments, zoneOffsetMin } from '../src/daylight.js';
+import { initDaylight, localSegments, zoneOffsetMin } from '../src/daylight.js';
 import { sunPhases } from '../src/sun.js';
 
 const MIN_PER_DAY = 1440;
@@ -137,5 +137,79 @@ describe('localSegments', () => {
                 expect(Math.round(segment.endMin)).toBeGreaterThan(Math.round(segment.startMin));
             }
         }
+    });
+});
+
+describe('initDaylight', () => {
+    /** The disclosure on its own — the rest of the card plays no part here. */
+    const mount = () => {
+        document.body.innerHTML = '<details class="daylight-details"><summary></summary></details>';
+        return document.querySelector('.daylight-details');
+    };
+
+    /** `toggle` is queued rather than dispatched inline, so let it land. */
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+        document.body.innerHTML = '';
+    });
+
+    it('starts closed when nothing was ever chosen', () => {
+        const details = mount();
+        initDaylight();
+        expect(details.open).toBe(false);
+    });
+
+    it('reopens a table that was left open', () => {
+        localStorage.setItem('ssm-phases', 'open');
+        const details = mount();
+        initDaylight();
+        expect(details.open).toBe(true);
+    });
+
+    it('remembers both directions', async () => {
+        const details = mount();
+        initDaylight();
+
+        details.open = true;
+        await settle();
+        expect(localStorage.getItem('ssm-phases')).toBe('open');
+
+        details.open = false;
+        await settle();
+        expect(localStorage.getItem('ssm-phases')).toBe('closed');
+    });
+
+    it('writes nothing for a visitor who never touched it', async () => {
+        mount();
+        initDaylight();
+        await settle();
+        expect(localStorage.getItem('ssm-phases')).toBeNull();
+    });
+
+    it('survives storage being unavailable, in both directions', async () => {
+        vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+            throw new Error('SecurityError');
+        });
+        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new Error('SecurityError');
+        });
+
+        const details = mount();
+        expect(() => initDaylight()).not.toThrow();
+        expect(details.open).toBe(false);
+
+        details.open = true;
+        await expect(settle()).resolves.not.toThrow();
+    });
+
+    it('does nothing when the card is not on the page', () => {
+        document.body.innerHTML = '';
+        expect(() => initDaylight()).not.toThrow();
     });
 });

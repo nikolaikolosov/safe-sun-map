@@ -7,7 +7,7 @@
  */
 
 import { fetchUv, formatUv, uvBand } from './uv.js';
-import { renderDaylight } from './daylight.js';
+import { initDaylight, renderDaylight } from './daylight.js';
 import { initMap, recentre, showUser } from './map.js';
 import { initHelp } from './help.js';
 import {
@@ -277,6 +277,7 @@ function init() {
     initMap({ onRecentre: recentre, onHelp: initHelp() });
     applyTranslations();
 
+    initDaylight();
     initLangSwitcher();
     updateLangSwitcher();
     onLangChange(() => {

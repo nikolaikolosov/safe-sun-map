@@ -12,6 +12,9 @@ import { localeTag, t } from './i18n.js';
 
 const MIN_PER_DAY = 1440;
 
+/** Where the phase table's open/closed state is kept, next to `ssm-lang`. */
+const PHASES_KEY = 'ssm-phases';
+
 /** Ticks under the bar. Every six hours is enough to read it by. */
 const AXIS_HOURS = [0, 6, 12, 18, 24];
 
@@ -30,6 +33,38 @@ function elements() {
         };
     }
     return dom;
+}
+
+/**
+ * Restores the phase table's open/closed state and keeps it up to date.
+ *
+ * Someone who opened the table meant to see it, and a card that folds itself
+ * shut on every visit is the same argument the language switcher already
+ * settled once.
+ *
+ * Nothing is written for a visitor who never touched it: setting `open` to the
+ * false it already holds fires no `toggle`, so a default is never mistaken for
+ * a choice.
+ *
+ * @param {ParentNode} [root]
+ */
+export function initDaylight(root = document) {
+    const details = root.querySelector('.daylight-details');
+    if (!details) return;
+
+    try {
+        details.open = localStorage.getItem(PHASES_KEY) === 'open';
+    } catch {
+        // Private mode, or storage disabled — the table just starts closed.
+    }
+
+    details.addEventListener('toggle', () => {
+        try {
+            localStorage.setItem(PHASES_KEY, details.open ? 'open' : 'closed');
+        } catch {
+            // The choice just won't stick.
+        }
+    });
 }
 
 /**
