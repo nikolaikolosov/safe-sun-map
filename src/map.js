@@ -31,25 +31,37 @@ export const TILE_ATTRIBUTION =
 /**
  * Deepest zoom Esri has data for. Past it the server returns a grey "Map data
  * not yet available" placeholder — another 200 carrying the wrong picture.
- * `LOCATED_ZOOM` and the map's own `maxZoom` are both 16 today, so this is a
- * guard rather than a fix: raise either of those and Leaflet upscales the last
- * real tiles instead of papering the screen with that text.
  */
-const TILE_MAX_NATIVE_ZOOM = 16;
+export const TILE_MAX_ZOOM = 16;
 
 /**
- * The world, before we know anything about the visitor — and the view anyone
- * who refuses location permission is left with. Centred low enough that the
- * continents rather than the Arctic fill a tall phone screen.
+ * The one scale this map is ever drawn at: four steps back from the deepest
+ * tiles Esri has.
+ *
+ * There is no zooming here at all — no control, no pinch, no wheel, no
+ * double-tap. A UV reading is the same number over a whole city, so a scale
+ * control offers a choice that changes nothing about the answer while adding
+ * a way to end up somewhere unreadable. Panning stays: looking at where you
+ * are going is a real thing to want.
+ *
+ * `minZoom` and `maxZoom` are both pinned to it rather than only the handlers
+ * being switched off, so every remaining route to a zoom — the keyboard's +/−,
+ * an accessibility gesture, a future call to `setView` with the wrong second
+ * argument — is clamped to a no-op instead of relied upon not to fire.
  */
-const WORLD_VIEW = { center: [10, 0], zoom: 2 };
+export const FIXED_ZOOM = TILE_MAX_ZOOM - 4;
 
 /**
- * City scale. `app.js` asks for a coarse position on purpose, so the fix can be
- * kilometres wide; zooming past this would promise a precision the dot does not
- * have, and the accuracy halo would fill the screen.
+ * Where the map sits before geolocation answers, and where it stays for anyone
+ * who refuses it.
+ *
+ * It used to be the whole world at zoom 2, which a single-scale map can no
+ * longer show. Any fixed coordinate is arbitrary, so this one is at least
+ * legible: the prime meridian at Greenwich, land and coastline rather than the
+ * blank ocean that [10, 0] would have given. The card in front of it says why
+ * there is nothing better to show.
  */
-const LOCATED_ZOOM = 11;
+const FALLBACK_CENTER = [51.4826, 0.0077];
 
 /** @type {L.Map|null} */
 let map = null;
@@ -69,26 +81,28 @@ let centred = false;
  */
 export function initMap({ onRecentre, onHelp }) {
     map = L.map('map', {
-        center: WORLD_VIEW.center,
-        zoom: WORLD_VIEW.zoom,
-        minZoom: 2,
-        maxZoom: 16,
+        center: FALLBACK_CENTER,
+        zoom: FIXED_ZOOM,
+        minZoom: FIXED_ZOOM,
+        maxZoom: FIXED_ZOOM,
+        // Every gesture that changes scale, off at the source as well as
+        // clamped by min/max above. `keyboard` stays on: it is how arrow-key
+        // panning works, and its +/− have nothing left to move.
         zoomControl: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        touchZoom: false,
+        boxZoom: false,
         worldCopyJump: true,
         attributionControl: true,
     });
 
-    L.tileLayer(TILE_URL, {
-        attribution: TILE_ATTRIBUTION,
-        maxZoom: 16,
-        maxNativeZoom: TILE_MAX_NATIVE_ZOOM,
-    }).addTo(map);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: FIXED_ZOOM }).addTo(map);
     map.attributionControl.setPrefix('');
 
     // Leaflet PREPENDS controls in the bottom corners, so the stack reads
-    // bottom-up in the order added: zoom, then recentre above it, then help on
-    // top. Least-used furthest from the thumb.
+    // bottom-up in the order added: recentre, then help above it. Least-used
+    // furthest from the thumb.
     //
     // A way back to yourself after panning matters more than it looks: without
     // it the map has a dead end — scroll off to another continent on a phone
@@ -178,12 +192,12 @@ export function showUser(lat, lon, accuracy) {
 
     if (!centred) {
         centred = true;
-        map.setView(latlng, LOCATED_ZOOM);
+        map.setView(latlng, FIXED_ZOOM);
     }
 }
 
 /** Takes the camera back to the last known position, if there is one. */
 export function recentre() {
     if (!map || !marker) return;
-    map.setView(marker.getLatLng(), LOCATED_ZOOM);
+    map.setView(marker.getLatLng(), FIXED_ZOOM);
 }
