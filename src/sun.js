@@ -1,5 +1,5 @@
 /**
- * Sunrise, sunset and civil twilight, computed on the device.
+ * The sun's day at a coordinate, computed on the device.
  *
  * NOAA's solar-position algorithm (the one behind their online calculator):
  * minute-level accuracy for the latitudes people live at, degrading gracefully
@@ -8,21 +8,46 @@
  * stale, and the numbers roll over at midnight without asking a server.
  *
  * The calendar date is taken from the Date's LOCAL fields — the device clock,
- * which is what the product asks for. The returned instants are absolute
- * (`Date`s); the caller decides which timezone to display them in.
+ * which is what the product asks for.
  */
 
 const DEG = Math.PI / 180;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/**
- * The sun's centre at sunrise/sunset: 16′ for the solar disc's radius plus 34′
- * of atmospheric refraction. The moment the top edge touches the horizon.
- */
-const SUN_ALTITUDE_DEG = -0.833;
+/** Half a day, in minutes: the widest an interval centred on noon can be. */
+const HALF_DAY_MIN = 720;
 
-/** Civil twilight ends with the sun 6° down — the "too dark to read" line. */
-const CIVIL_ALTITUDE_DEG = -6;
+/**
+ * The sun's altitude at each boundary, from darkest to brightest. The last is
+ * sunrise/sunset: 16′ for the solar disc's radius plus 34′ of atmospheric
+ * refraction, the moment the top edge touches the horizon. The twilights are
+ * the standard −18/−12/−6 definitions.
+ *
+ * Order matters — each interval contains the next, which is what lets the
+ * phases be built by subtraction rather than by case analysis.
+ */
+const THRESHOLDS = [
+    { id: 'astronomical', altitudeDeg: -18 },
+    { id: 'nautical', altitudeDeg: -12 },
+    { id: 'civil', altitudeDeg: -6 },
+    { id: 'day', altitudeDeg: -0.833 },
+];
+
+/**
+ * The nine phases of a day, in order. Symmetric about solar noon: the same
+ * twilight ladder climbed in the morning and descended in the evening.
+ */
+const PHASE_ORDER = [
+    'night',
+    'astronomical',
+    'nautical',
+    'civil',
+    'day',
+    'civil',
+    'nautical',
+    'astronomical',
+    'night',
+];
 
 /**
  * Julian day number of a calendar date. The number itself corresponds to noon
@@ -92,27 +117,82 @@ function solarParameters(jdn) {
 }
 
 /**
- * Half the sun's arc above `altitudeDeg`, in degrees of hour angle.
+ * Half the width, in minutes, of the interval around solar noon during which
+ * the sun is above `altitudeDeg`. Zero when it never gets that high all day,
+ * a full 720 when it never drops that low.
  *
- * @returns {number|null|Infinity} `null` when the sun never gets that high
- *   today, `Infinity` when it never gets that low.
+ * Expressing every threshold this way is what removes the case analysis: the
+ * polar day is simply an interval of 720, the polar night an interval of 0,
+ * and the phases in between are differences of neighbouring half-widths.
+ *
+ * @returns {number} 0…720
  */
-function hourAngleDeg(latDeg, declinationDeg, altitudeDeg) {
+function halfWidthMin(latDeg, declinationDeg, altitudeDeg) {
     const cosHa =
         (Math.sin(altitudeDeg * DEG) - Math.sin(latDeg * DEG) * Math.sin(declinationDeg * DEG)) /
         (Math.cos(latDeg * DEG) * Math.cos(declinationDeg * DEG));
-    if (cosHa > 1) return null;
-    if (cosHa < -1) return Infinity;
-    return Math.acos(cosHa) / DEG;
+    if (cosHa > 1) return 0;
+    if (cosHa < -1) return HALF_DAY_MIN;
+    return 4 * (Math.acos(cosHa) / DEG);
 }
 
 /**
- * The sun's day at a coordinate, for the calendar date the device says it is.
+ * The whole day as an ordered run of phases, from midnight to midnight.
+ *
+ * Times are minutes from 00:00 UTC of the calendar date, which the caller
+ * shifts into whatever zone it means to display. Phases that do not occur —
+ * most of them, at the poles — come back with zero length rather than being
+ * absent, so the run always covers the day exactly once and the caller can
+ * filter rather than reconstruct.
+ *
+ * @param {Date} date - only its local calendar date is used
+ * @param {number} lat
+ * @param {number} lon - positive east
+ * @returns {{
+ *   dayStartUtc: number,
+ *   noonMin: number,
+ *   phases: {id: string, startMin: number, endMin: number}[],
+ *   halfWidths: Record<string, number>,
+ * }}
+ */
+export function sunPhases(date, lat, lon) {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+
+    const { declinationDeg, eqTimeMin } = solarParameters(julianDayNumber(year, month, day));
+    const noonMin = HALF_DAY_MIN - 4 * lon - eqTimeMin;
+
+    const halves = THRESHOLDS.map((threshold) =>
+        halfWidthMin(lat, declinationDeg, threshold.altitudeDeg),
+    );
+
+    // Boundaries, earliest to latest: down the ladder to solar noon and back
+    // up. Darkest threshold first, so `halves` is descending and the list is
+    // already sorted.
+    const bounds = [
+        ...halves.map((h) => noonMin - h),
+        ...[...halves].reverse().map((h) => noonMin + h),
+    ];
+
+    const phases = PHASE_ORDER.map((id, i) => ({
+        id,
+        startMin: i === 0 ? noonMin - HALF_DAY_MIN : bounds[i - 1],
+        endMin: i === PHASE_ORDER.length - 1 ? noonMin + HALF_DAY_MIN : bounds[i],
+    }));
+
+    const halfWidths = Object.fromEntries(THRESHOLDS.map((t, i) => [t.id, halves[i]]));
+    return { dayStartUtc: Date.UTC(year, month - 1, day), noonMin, phases, halfWidths };
+}
+
+/**
+ * The headline facts of the sun's day: when it rises and sets, how long the
+ * light lasts, and how long one civil twilight runs.
  *
  * `twilightMs` is the length of ONE civil twilight — dawn to sunrise; the
  * evening one is its mirror. In a polar night that still gets civil light it
- * becomes the length of that midday glow instead, and where the sky never
- * leaves twilight (white nights) or never reaches it, it is `null` — no number
+ * becomes the length of that midday glow instead. Where the sky never leaves
+ * civil twilight (white nights) or never reaches it, it is `null` — no number
  * would mean anything.
  *
  * @param {Date} date - only its local calendar date is used
@@ -126,63 +206,38 @@ function hourAngleDeg(latDeg, declinationDeg, altitudeDeg) {
  * }}
  */
 export function sunTimes(date, lat, lon) {
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-
-    const { declinationDeg, eqTimeMin } = solarParameters(julianDayNumber(year, month, day));
-    const noonMin = 720 - 4 * lon - eqTimeMin;
-    const dayStartUtc = Date.UTC(year, month - 1, day);
+    const { dayStartUtc, noonMin, halfWidths } = sunPhases(date, lat, lon);
     const at = (min) => new Date(dayStartUtc + min * 60000);
 
-    const haSun = hourAngleDeg(lat, declinationDeg, SUN_ALTITUDE_DEG);
-    const haCivil = hourAngleDeg(lat, declinationDeg, CIVIL_ALTITUDE_DEG);
+    const dayHalf = halfWidths.day;
+    const civilHalf = halfWidths.civil;
 
-    // Polar day: the sun never touches the horizon.
-    if (haSun === Infinity) {
-        return {
-            sunrise: null,
-            sunset: null,
-            dawn: null,
-            dusk: null,
-            daylightMs: DAY_MS,
-            twilightMs: null,
-            polar: 'day',
-        };
-    }
+    // A threshold the sun never crosses has no moment to report: 0 means it
+    // stayed below all day, 720 that it stayed above.
+    const hasSunEvents = dayHalf > 0 && dayHalf < HALF_DAY_MIN;
+    const hasCivilEvents = civilHalf > 0 && civilHalf < HALF_DAY_MIN;
 
-    // Polar night: the sun never clears it. Civil twilight may still happen —
-    // a midday glow (haCivil finite), all-day dusk (Infinity), or nothing.
-    // Durations are derived from the constructed Dates, not from the raw hour
-    // angles — Dates hold whole milliseconds, and the identities the caller
-    // may rely on (twilight = dusk − dawn) must be exact, not float-close.
-    if (haSun === null) {
-        const dawn = Number.isFinite(haCivil) ? at(noonMin - 4 * haCivil) : null;
-        const dusk = Number.isFinite(haCivil) ? at(noonMin + 4 * haCivil) : null;
-        return {
-            sunrise: null,
-            sunset: null,
-            dawn,
-            dusk,
-            daylightMs: 0,
-            twilightMs: dawn ? dusk - dawn : haCivil === Infinity ? DAY_MS : null,
-            polar: 'night',
-        };
-    }
+    const sunrise = hasSunEvents ? at(noonMin - dayHalf) : null;
+    const sunset = hasSunEvents ? at(noonMin + dayHalf) : null;
+    const dawn = hasCivilEvents ? at(noonMin - civilHalf) : null;
+    const dusk = hasCivilEvents ? at(noonMin + civilHalf) : null;
 
-    // An ordinary day. haCivil is finite unless the sky never leaves civil
-    // twilight overnight (high-latitude white nights) — then dawn and dusk do
-    // not exist as moments and a per-side length would be arbitrary.
-    const sunrise = at(noonMin - 4 * haSun);
-    const sunset = at(noonMin + 4 * haSun);
-    const dawn = haCivil === Infinity ? null : at(noonMin - 4 * haCivil);
+    const polar = dayHalf === HALF_DAY_MIN ? 'day' : dayHalf === 0 ? 'night' : null;
+
+    // Durations come from the constructed Dates, not the raw half-widths:
+    // Dates hold whole milliseconds, so the identities a caller may rely on
+    // (twilight = sunrise − dawn) are exact rather than float-close.
+    let twilightMs = null;
+    if (hasCivilEvents) twilightMs = sunrise ? sunrise - dawn : dusk - dawn;
+    else if (polar === 'night' && civilHalf === HALF_DAY_MIN) twilightMs = DAY_MS;
+
     return {
         sunrise,
         sunset,
         dawn,
-        dusk: haCivil === Infinity ? null : at(noonMin + 4 * haCivil),
-        daylightMs: sunset - sunrise,
-        twilightMs: dawn ? sunrise - dawn : null,
-        polar: null,
+        dusk,
+        daylightMs: sunset ? sunset - sunrise : dayHalf === HALF_DAY_MIN ? DAY_MS : 0,
+        twilightMs,
+        polar,
     };
 }
