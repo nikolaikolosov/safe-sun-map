@@ -49,41 +49,77 @@
             <div id="veil" aria-hidden="true"></div>
         </div>
 
-        <main id="card" aria-live="polite">
-            <!-- The label stays up in every state: it titles the card, so it
-                 reads correctly above a status line as well as above a
-                 reading — which is what keeps the switcher on one row with
-                 something, instead of on a row of its own. -->
-            <div class="card-head">
-                <p id="uv-label" class="card-label" data-i18n="label.uv">UV index</p>
-                <div
-                    class="lang-switcher"
-                    role="group"
-                    aria-label="Change language"
-                    data-i18n-aria="lang.groupAria"
-                >
-                    <button type="button" class="lang-btn" data-lang="en" lang="en">EN</button>
-                    <button type="button" class="lang-btn" data-lang="es" lang="es">ES</button>
-                    <button type="button" class="lang-btn" data-lang="ru" lang="ru">RU</button>
+        <!-- One fixed column holding the cards, so the daylight card sits
+             under the UV card by flex order rather than by a hard-coded
+             offset that every language would break. -->
+        <div class="stack">
+            <main id="card" aria-live="polite">
+                <!-- The label stays up in every state: it titles the card, so it
+                     reads correctly above a status line as well as above a
+                     reading — which is what keeps the switcher on one row with
+                     something, instead of on a row of its own. -->
+                <div class="card-head">
+                    <p id="uv-label" class="card-label" data-i18n="label.uv">UV index</p>
+                    <div
+                        class="lang-switcher"
+                        role="group"
+                        aria-label="Change language"
+                        data-i18n-aria="lang.groupAria"
+                    >
+                        <button type="button" class="lang-btn" data-lang="en" lang="en">EN</button>
+                        <button type="button" class="lang-btn" data-lang="es" lang="es">ES</button>
+                        <button type="button" class="lang-btn" data-lang="ru" lang="ru">RU</button>
+                    </div>
                 </div>
-            </div>
 
-            <div id="reading" hidden>
-                <p class="card-headline">
-                    <span id="uv-value">—</span>
-                    <span id="uv-band"></span>
-                </p>
-                <p id="uv-advice" class="card-advice"></p>
-                <p id="clock" class="card-clock"></p>
-            </div>
+                <div id="reading" hidden>
+                    <p class="card-headline">
+                        <span id="uv-value">—</span>
+                        <span id="uv-band"></span>
+                    </p>
+                    <p id="uv-advice" class="card-advice"></p>
+                    <p id="clock" class="card-clock"></p>
+                </div>
 
-            <div id="status" class="card-status">
-                <p id="status-text"></p>
-                <button type="button" id="retry" class="retry" data-i18n="status.retry" hidden>
-                    Retry
-                </button>
-            </div>
-        </main>
+                <div id="status" class="card-status">
+                    <p id="status-text"></p>
+                    <button type="button" id="retry" class="retry" data-i18n="status.retry" hidden>
+                        Retry
+                    </button>
+                </div>
+            </main>
+
+            <!-- The day's light, in the shape timeanddate.com uses: a bar of the
+                 24 hours with each phase's share of it, then the same phases as
+                 rows with their hours. Everything in it is computed from the
+                 device's date and the visitor's coordinate (src/sun.js) — the card
+                 asks the network for nothing. Filled by src/daylight.js. -->
+            <section id="daylight" class="daylight" aria-labelledby="daylight-title" hidden>
+                <div class="daylight-head">
+                    <h2 id="daylight-title" class="daylight-title" data-i18n="daylight.title">
+                        Night, twilight and daylight
+                    </h2>
+                    <p id="daylight-place" class="daylight-place"></p>
+                </div>
+
+                <p id="daylight-summary" class="daylight-summary"></p>
+
+                <div id="daylight-bar" class="daylight-bar" role="img"></div>
+                <div id="daylight-axis" class="daylight-axis" aria-hidden="true"></div>
+
+                <!-- The bar answers at a glance and stays; the nine rows behind
+                     it are reference, and on a small phone they were most of
+                     the screen. A native <details> brings the keyboard, focus
+                     and screen-reader semantics of a disclosure with it. -->
+                <details class="daylight-details">
+                    <summary class="daylight-toggle">
+                        <span data-i18n="daylight.phases">Phases of the day</span>
+                        <span class="daylight-chevron" aria-hidden="true"></span>
+                    </summary>
+                    <ul id="daylight-phases" class="daylight-phases"></ul>
+                </details>
+            </section>
+        </div>
 
         <!-- Bottom-left, the one corner the map controls leave empty. Chrome
              like the card, so it sits at the card's layer and the wash passes

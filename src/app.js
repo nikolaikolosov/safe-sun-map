@@ -7,6 +7,7 @@
  */
 
 import { fetchUv, formatUv, uvBand } from './uv.js';
+import { initDaylight, renderDaylight } from './daylight.js';
 import { initMap, recentre, showUser } from './map.js';
 import { initHelp } from './help.js';
 import {
@@ -69,9 +70,18 @@ let inFlight = null;
  * means the switch replays it instead of the card going blank or, worse,
  * keeping the old language until the next fix arrives ten minutes later.
  *
- * @type {{kind: 'reading', uv: number} | {kind: 'status', key: string, retryable: boolean}}
+ * @type {{kind: 'reading', uv: number, position: {lat: number, lon: number}}
+ *   | {kind: 'status', key: string, retryable: boolean}}
  */
 let view = { kind: 'status', key: 'status.locating', retryable: false };
+
+/**
+ * The device-clock day the daylight card was last drawn for. Its times only
+ * change at midnight; the clock tick compares against this so the card does
+ * not sit on yesterday until the next fetch, up to ten minutes later.
+ * @type {string|null}
+ */
+let sunDrawnFor = null;
 
 /**
  * Great-circle distance in metres. Small enough to inline; the alternative is a
@@ -108,9 +118,11 @@ function needsRefresh(position) {
  * Shows a reading.
  *
  * @param {number} uv
+ * @param {{lat: number, lon: number}} position - where it was read, for the
+ *   sunrise/sunset arithmetic
  */
-function showReading(uv) {
-    view = { kind: 'reading', uv };
+function showReading(uv, position) {
+    view = { kind: 'reading', uv, position };
     render();
 }
 
@@ -137,6 +149,8 @@ function render() {
         dom.value.textContent = formatUv(view.uv, localeTag());
         dom.band.textContent = t('band.' + band.id);
         dom.advice.textContent = t('advice.' + band.id);
+        renderDaylight(view.position, timezone);
+        sunDrawnFor = new Date().toDateString();
 
         dom.reading.hidden = false;
         dom.status.hidden = true;
@@ -148,6 +162,7 @@ function render() {
     dom.retry.hidden = !view.retryable;
     dom.reading.hidden = true;
     dom.status.hidden = false;
+    renderDaylight(null, null);
     // The wash goes fully transparent while a status is up: a colour left on
     // screen next to "location is off" would be read as the answer, and a wrong
     // answer to "is it safe outside" is worse than none.
@@ -168,6 +183,10 @@ function updateClock() {
     // makes it obvious the clock is the LOCATION's time, not the device's.
     const place = timezone.split('/').pop().replace(/_/g, ' ');
     dom.clock.textContent = time + ' · ' + place;
+
+    // Midnight on the device clock: the date and every time on the daylight
+    // card just changed, and the next fetch is up to ten minutes away.
+    if (view.kind === 'reading' && sunDrawnFor !== new Date().toDateString()) render();
 }
 
 /**
@@ -189,7 +208,7 @@ async function refreshUv(position) {
         timezone = reading.timezone;
         fetchedAt = position;
         fetchedWhen = Date.now();
-        showReading(reading.uv);
+        showReading(reading.uv, position);
     } catch (error) {
         if (error.name === 'AbortError') return;
         console.warn('[uv] could not read the index:', error.message);
@@ -258,6 +277,7 @@ function init() {
     initMap({ onRecentre: recentre, onHelp: initHelp() });
     applyTranslations();
 
+    initDaylight();
     initLangSwitcher();
     updateLangSwitcher();
     onLangChange(() => {

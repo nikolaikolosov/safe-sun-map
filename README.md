@@ -29,6 +29,21 @@ look past.
 3. The reading is refreshed every 10 minutes, whenever the visitor moves more than 10 km, and
    whenever a parked tab comes back to the foreground.
 
+A second card under the reading gives the day its own shape: a bar of the 24 hours divided
+into night, astronomical, nautical and civil twilight and daylight, and behind a tap the same
+phases as rows with their hours — the layout
+[timeanddate.com](https://www.timeanddate.com/astronomy/) uses. The bar answers at a glance
+and stays; the nine rows are reference, and on a small phone they were most of the screen.
+Whether the table is open is remembered between visits, like the language. The date comes from the device
+clock and everything else is computed on the device from that date and the position
+([src/sun.js](src/sun.js), NOAA's solar algorithm): no extra network call, and the numbers
+roll over at midnight on their own.
+
+Times are shown in the location's timezone, like the clock, so a traveller reads the sunset of
+the place they are standing in. Only the phases a day actually has appear — high summer at
+78°N is civil twilight, daylight, civil twilight and nothing else — so polar latitudes get a
+shorter table rather than impossible numbers.
+
 There is no dark mode by design: the five bands are only distinguishable from one another over
 a light, low-saturation basemap. Tiles are Esri's World Light Gray Base — no API key, no
 account, and a grey canvas by design, so nothing has to be desaturated to keep the five washes
@@ -60,12 +75,16 @@ returning visitors keep the previous copy for up to ten more (Pages sends
 index.html          markup and the meta-tag CSP
 css/styles.css      one screen's worth of styles
 src/uv.js           the domain model: bands, rounding, formatting, the API call
+src/sun.js          the sun's phases for a date and a coordinate, computed on the device
+src/daylight.js     the daylight card: the 24-hour bar and the phase table
 src/map.js          Leaflet — basemap, "you are here", the bottom-right controls
 src/help.js         the ⓘ sheet: what the index is, the levels, what it does
 src/i18n.js         copy in en/es/ru, and the language runtime
 src/app.js          wiring: position → reading → wash, and the switcher
 tests/uv.test.js    band boundaries, formatting, API failure modes
 tests/i18n.test.js  language resolution, persistence, copy completeness
+tests/sun.test.js   solar anchors, day ordering, polar and white-night cases
+tests/daylight.test.js  axis coverage, zone offsets, published-times agreement
 ```
 
 ## Verification
