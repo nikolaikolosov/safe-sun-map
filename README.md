@@ -39,6 +39,12 @@ clock and everything else is computed on the device from that date and the posit
 ([src/sun.js](src/sun.js), NOAA's solar algorithm): no extra network call, and the numbers
 roll over at midnight on their own.
 
+The line above the bar counts down what is left of the phase you are actually in: daylight
+until sunset, twilight until it turns, night until dawn. Night is the case that needs care —
+on the bar it is two segments, one running into midnight and one out of it, but it is a single
+stretch of darkness, so at 21:00 the answer reaches into tomorrow's small hours while at 02:00
+it stops at this morning's dawn.
+
 Times are shown in the location's timezone, like the clock, so a traveller reads the sunset of
 the place they are standing in. Only the phases a day actually has appear — high summer at
 78°N is civil twilight, daylight, civil twilight and nothing else — so polar latitudes get a

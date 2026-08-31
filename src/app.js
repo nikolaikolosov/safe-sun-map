@@ -7,7 +7,7 @@
  */
 
 import { fetchUv, formatUv, uvBand } from './uv.js';
-import { collapsedBottomPx, initDaylight, renderDaylight } from './daylight.js';
+import { collapsedBottomPx, initDaylight, refreshRemaining, renderDaylight } from './daylight.js';
 import { initMap, showUser } from './map.js';
 import { initHelp } from './help.js';
 import {
@@ -217,9 +217,18 @@ function updateClock() {
     const place = timezone.split('/').pop().replace(/_/g, ' ');
     dom.clock.textContent = time + ' · ' + place;
 
+    if (view.kind !== 'reading') return;
+
     // Midnight on the device clock: the date and every time on the daylight
     // card just changed, and the next fetch is up to ten minutes away.
-    if (view.kind === 'reading' && sunDrawnFor !== new Date().toDateString()) render();
+    if (sunDrawnFor !== new Date().toDateString()) {
+        render();
+        return;
+    }
+
+    // Otherwise only the countdown moves. Redrawing the whole card three times
+    // a minute would rebuild the DOM inside an open phase table for nothing.
+    refreshRemaining(view.position, timezone);
 }
 
 /**
