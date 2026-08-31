@@ -29,6 +29,13 @@ look past.
 3. The reading is refreshed every 10 minutes, whenever the visitor moves more than 10 km, and
    whenever a parked tab comes back to the foreground.
 
+Under the reading, the card shows today's date — taken from the device clock — with sunrise,
+sunset, twilight length and daylight length. Those are computed on the device from that date
+and the position ([src/sun.js](src/sun.js), NOAA's solar algorithm): no extra network call,
+and they roll over at midnight on their own. Times are displayed in the location's timezone,
+like the clock, so a traveller reads the sunset of the place they are standing in. Polar
+latitudes get words instead of impossible numbers — the sun not rising or not setting today.
+
 There is no dark mode by design: the five bands are only distinguishable from one another over
 a light, low-saturation basemap. Tiles are Esri's World Light Gray Base — no API key, no
 account, and a grey canvas by design, so nothing has to be desaturated to keep the five washes
@@ -60,12 +67,14 @@ returning visitors keep the previous copy for up to ten more (Pages sends
 index.html          markup and the meta-tag CSP
 css/styles.css      one screen's worth of styles
 src/uv.js           the domain model: bands, rounding, formatting, the API call
+src/sun.js          sunrise, sunset and civil twilight, computed on the device
 src/map.js          Leaflet — basemap, "you are here", the bottom-right controls
 src/help.js         the ⓘ sheet: what the index is, the levels, what it does
 src/i18n.js         copy in en/es/ru, and the language runtime
 src/app.js          wiring: position → reading → wash, and the switcher
 tests/uv.test.js    band boundaries, formatting, API failure modes
 tests/i18n.test.js  language resolution, persistence, copy completeness
+tests/sun.test.js   solar anchors, day ordering, polar and white-night cases
 ```
 
 ## Verification

@@ -7,6 +7,7 @@
  */
 
 import { fetchUv, formatUv, uvBand } from './uv.js';
+import { sunTimes } from './sun.js';
 import { initMap, recentre, showUser } from './map.js';
 import { initHelp } from './help.js';
 import {
@@ -44,6 +45,8 @@ const dom = {
     value: document.getElementById('uv-value'),
     band: document.getElementById('uv-band'),
     advice: document.getElementById('uv-advice'),
+    sunTimes: document.getElementById('sun-times'),
+    sunLengths: document.getElementById('sun-lengths'),
     clock: document.getElementById('clock'),
     status: document.getElementById('status'),
     statusText: document.getElementById('status-text'),
@@ -69,9 +72,18 @@ let inFlight = null;
  * means the switch replays it instead of the card going blank or, worse,
  * keeping the old language until the next fix arrives ten minutes later.
  *
- * @type {{kind: 'reading', uv: number} | {kind: 'status', key: string, retryable: boolean}}
+ * @type {{kind: 'reading', uv: number, position: {lat: number, lon: number}}
+ *   | {kind: 'status', key: string, retryable: boolean}}
  */
 let view = { kind: 'status', key: 'status.locating', retryable: false };
+
+/**
+ * The device-clock day the sun rows were last drawn for. Sunrise and sunset
+ * only change at midnight; the clock tick compares against this so the date on
+ * the card does not sit yesterday's until the next fetch.
+ * @type {string|null}
+ */
+let sunDrawnFor = null;
 
 /**
  * Great-circle distance in metres. Small enough to inline; the alternative is a
@@ -108,9 +120,11 @@ function needsRefresh(position) {
  * Shows a reading.
  *
  * @param {number} uv
+ * @param {{lat: number, lon: number}} position - where it was read, for the
+ *   sunrise/sunset arithmetic
  */
-function showReading(uv) {
-    view = { kind: 'reading', uv };
+function showReading(uv, position) {
+    view = { kind: 'reading', uv, position };
     render();
 }
 
@@ -137,6 +151,7 @@ function render() {
         dom.value.textContent = formatUv(view.uv, localeTag());
         dom.band.textContent = t('band.' + band.id);
         dom.advice.textContent = t('advice.' + band.id);
+        renderSun(view.position);
 
         dom.reading.hidden = false;
         dom.status.hidden = true;
@@ -154,6 +169,82 @@ function render() {
     dom.veil.style.opacity = '0';
 }
 
+/**
+ * A duration as "11 ч 10 мин", dropping whichever unit is zero.
+ *
+ * @param {number} ms
+ * @returns {string}
+ */
+function formatDuration(ms) {
+    const totalMin = Math.round(ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const min = totalMin % 60;
+    if (h && min) return `${h} ${t('unit.h')} ${min} ${t('unit.min')}`;
+    if (h) return `${h} ${t('unit.h')}`;
+    return `${min} ${t('unit.min')}`;
+}
+
+/**
+ * The two sun rows: the device's date with sunrise and sunset, then the
+ * daylight and twilight lengths. All arithmetic is local (src/sun.js); the
+ * times are DISPLAYED in the location's zone, like the clock below them, so a
+ * traveller reads the sunset of the place they are standing in.
+ *
+ * @param {{lat: number, lon: number}} position
+ */
+function renderSun(position) {
+    const now = new Date();
+    sunDrawnFor = now.toDateString();
+    const sun = sunTimes(now, position.lat, position.lon);
+
+    const timeFmt = new Intl.DateTimeFormat(localeTag(), {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: timezone ?? undefined,
+    });
+
+    const span = (text) => {
+        const el = document.createElement('span');
+        el.textContent = text;
+        return el;
+    };
+    // The ↑/↓ marks are punctuation to the eye but noise to a screen reader;
+    // each gets a hidden spoken name instead.
+    const eventSpan = (mark, key, when) => {
+        const el = document.createElement('span');
+        const glyph = document.createElement('span');
+        glyph.setAttribute('aria-hidden', 'true');
+        glyph.textContent = mark + ' ';
+        const name = document.createElement('span');
+        name.className = 'sr-only';
+        name.textContent = t(key) + ' ';
+        el.append(glyph, name, document.createTextNode(timeFmt.format(when)));
+        return el;
+    };
+
+    const dateText = new Intl.DateTimeFormat(localeTag(), {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+    }).format(now);
+
+    const times = [span(dateText)];
+    if (sun.polar) {
+        times.push(span(t(sun.polar === 'day' ? 'sun.polarDay' : 'sun.polarNight')));
+    } else {
+        times.push(eventSpan('↑', 'sun.sunrise', sun.sunrise));
+        times.push(eventSpan('↓', 'sun.sunset', sun.sunset));
+    }
+    dom.sunTimes.replaceChildren(...times);
+
+    const lengths = [span(t('sun.daylight') + ' ' + formatDuration(sun.daylightMs))];
+    if (sun.twilightMs !== null) {
+        lengths.push(span(t('sun.twilight') + ' ' + formatDuration(sun.twilightMs)));
+    }
+    dom.sunLengths.replaceChildren(...lengths);
+}
+
 /** Renders local time at the visitor's coordinates, per the provider's zone. */
 function updateClock() {
     if (!timezone) return;
@@ -168,6 +259,10 @@ function updateClock() {
     // makes it obvious the clock is the LOCATION's time, not the device's.
     const place = timezone.split('/').pop().replace(/_/g, ' ');
     dom.clock.textContent = time + ' · ' + place;
+
+    // Midnight on the device clock: the date and the sun times just changed,
+    // and the next fetch is up to ten minutes away.
+    if (view.kind === 'reading' && sunDrawnFor !== new Date().toDateString()) render();
 }
 
 /**
@@ -189,7 +284,7 @@ async function refreshUv(position) {
         timezone = reading.timezone;
         fetchedAt = position;
         fetchedWhen = Date.now();
-        showReading(reading.uv);
+        showReading(reading.uv, position);
     } catch (error) {
         if (error.name === 'AbortError') return;
         console.warn('[uv] could not read the index:', error.message);
