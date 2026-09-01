@@ -404,8 +404,14 @@ describe('the row the clock is in', () => {
     it('bolds the LAST Night at 21:27', () => {
         const all = drawAt(21, 27);
         expect(marked()).toEqual([all[all.length - 1]]);
-        // The last row's end renders as 00:00 — midnight named the way a clock does.
-        expect(marked()[0].textContent).toContain('19:49–00:00');
+        // It is the night that runs INTO midnight, which is what ending at
+        // 00:00 says — midnight named the way a clock names it.
+        //
+        // The minute it starts is deliberately not asserted: `sunPhases` takes
+        // its day from the Date's LOCAL fields, so this instant is 31 Aug on a
+        // machine in Montevideo and 1 Sep on a runner in UTC, and dusk moves a
+        // minute between the two. Which row is bold does not.
+        expect(marked()[0].textContent).toMatch(/–00:00$/);
     });
 
     it('bolds the FIRST Night after midnight', () => {
