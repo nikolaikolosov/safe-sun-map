@@ -397,8 +397,8 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-/* The row people are actually looking for. */
-.daylight-phases li.is-day {
+/* The phase happening right now — the row someone reads the table to find. */
+.daylight-phases li.is-now {
     font-weight: 600;
     color: var(--ink);
 }
