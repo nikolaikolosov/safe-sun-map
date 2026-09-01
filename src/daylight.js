@@ -193,6 +193,25 @@ export function localMinutes(date, offsetMin) {
 }
 
 /**
+ * Which segment of the day the clock is in.
+ *
+ * One definition, used by the line that counts the phase down and by the row
+ * bolded under it, so the two can never name different phases.
+ *
+ * The segments cover the axis exactly once, so a miss is floating-point dust
+ * at a boundary rather than a gap, and the last segment is the only one that
+ * can hold the far edge.
+ *
+ * @param {{startMin: number, endMin: number}[]} segments
+ * @param {number} nowMin - local minutes since midnight
+ * @returns {number} index into `segments`, or -1 when there are none
+ */
+export function currentIndex(segments, nowMin) {
+    const found = segments.findIndex((s) => nowMin >= s.startMin && nowMin < s.endMin);
+    return found === -1 ? segments.length - 1 : found;
+}
+
+/**
  * How much of the current phase is left, and which phase that is.
  *
  * Night is the case this exists for. On the 24-hour axis it is two segments —
@@ -212,9 +231,7 @@ export function localMinutes(date, offsetMin) {
  * @returns {{id: string, minutes: number}|null}
  */
 export function remainingPhase(segments, tomorrow, nowMin) {
-    const current =
-        segments.find((s) => nowMin >= s.startMin && nowMin < s.endMin) ??
-        segments[segments.length - 1];
+    const current = segments[currentIndex(segments, nowMin)];
     if (!current) return null;
 
     let end = current.endMin;
@@ -291,11 +308,15 @@ function compute(position, zone) {
 }
 
 /**
- * Redraws only the "time left" line.
+ * Redraws the two things that move with the clock: the "time left" line and
+ * which row is bold.
  *
- * The countdown has to move, and it is the one part of the card that changes
- * between position fixes. Rebuilding the bar and the nine rows three times a
- * minute to advance it would also rebuild the DOM inside an open phase table.
+ * They are the only parts of the card that change between position fixes, and
+ * they have to agree — a boundary that advanced the countdown but left the
+ * previous phase bolded would show the card contradicting itself. Rebuilding
+ * the bar and the nine rows three times a minute to keep them in step would
+ * rebuild the DOM inside an open phase table, so the rows are re-marked in
+ * place instead.
  *
  * @param {{lat: number, lon: number}|null} position
  * @param {string|null} timezone
@@ -305,7 +326,10 @@ export function refreshRemaining(position, timezone) {
     if (!el.card || el.card.hidden || !position) return;
 
     const zone = timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-    renderSummary(el.summary, compute(position, zone));
+    const state = compute(position, zone);
+
+    renderSummary(el.summary, state);
+    markCurrentPhase(el.phases, state.segments, state.nowMin);
 }
 
 /**
@@ -338,7 +362,7 @@ export function renderDaylight(position, timezone) {
     renderSummary(el.summary, state);
     renderBar(el.bar, segments);
     renderAxis(el.axis);
-    renderPhases(el.phases, segments);
+    renderPhases(el.phases, segments, state.nowMin);
 
     el.card.hidden = false;
 }
@@ -393,11 +417,10 @@ function renderAxis(target) {
 }
 
 /** The table under the bar: every phase the day actually has, with its hours. */
-function renderPhases(target, segments) {
+function renderPhases(target, segments, nowMin) {
     target.replaceChildren(
         ...segments.map((segment) => {
             const row = document.createElement('li');
-            row.className = segment.id === 'day' ? 'is-day' : '';
 
             const swatch = document.createElement('span');
             swatch.className = `daylight-dot phase-${segment.id}`;
@@ -415,6 +438,38 @@ function renderPhases(target, segments) {
             return row;
         }),
     );
+
+    markCurrentPhase(target, segments, nowMin);
+}
+
+/**
+ * Bolds the row the clock is in.
+ *
+ * Night is two rows — one running into midnight, one out of it — and which of
+ * the two you are in is the entire question at 21:27 and again at 00:30. The
+ * rows are in the same order as the segments they were built from, so this
+ * marks by position and can be re-run on rows that are already on screen.
+ *
+ * `aria-current` carries the same fact for a screen reader, which gets nothing
+ * out of a font weight.
+ *
+ * @param {Element} target
+ * @param {{startMin: number, endMin: number}[]} segments
+ * @param {number} nowMin - local minutes since midnight
+ */
+function markCurrentPhase(target, segments, nowMin) {
+    const rows = target.children;
+    // Only ever false if the day rolled over between the draw and the tick,
+    // which triggers a full redraw of its own a moment later.
+    if (rows.length !== segments.length) return;
+
+    const current = currentIndex(segments, nowMin);
+    for (let i = 0; i < rows.length; i += 1) {
+        const isNow = i === current;
+        rows[i].classList.toggle('is-now', isNow);
+        if (isNow) rows[i].setAttribute('aria-current', 'true');
+        else rows[i].removeAttribute('aria-current');
+    }
 }
 
 function span(text) {

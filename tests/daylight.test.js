@@ -1,10 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+    currentIndex,
     initDaylight,
     localMinutes,
     localSegments,
+    refreshRemaining,
     remainingPhase,
+    renderDaylight,
     zoneOffsetMin,
 } from '../src/daylight.js';
 import { sunPhases } from '../src/sun.js';
@@ -309,5 +312,130 @@ describe('remainingPhase', () => {
             expect(left.minutes).toBeGreaterThan(0);
             expect(left.minutes).toBeLessThanOrEqual(MIN_PER_DAY);
         }
+    });
+});
+
+describe('currentIndex', () => {
+    const today = axis(on(2026, 8, 31), ...MONTEVIDEO);
+
+    it('picks the night running INTO midnight when the evening is late', () => {
+        // 21:27 in Montevideo: night since 19:49, the last row of the table.
+        const i = currentIndex(today, 21 * 60 + 27);
+        expect(today[i].id).toBe('night');
+        expect(i).toBe(today.length - 1);
+    });
+
+    it('picks the night running OUT of midnight once the date has turned', () => {
+        const i = currentIndex(today, 30);
+        expect(today[i].id).toBe('night');
+        expect(i).toBe(0);
+    });
+
+    it('lands inside the segment it names, right around the day', () => {
+        for (let minute = 0; minute < MIN_PER_DAY; minute += 7) {
+            const segment = today[currentIndex(today, minute)];
+            expect(minute).toBeGreaterThanOrEqual(segment.startMin);
+            expect(minute).toBeLessThan(segment.endMin);
+        }
+    });
+
+    it('always names the phase the countdown is counting', () => {
+        const tomorrow = axis(on(2026, 9, 1), ...MONTEVIDEO);
+        for (let minute = 0; minute < MIN_PER_DAY; minute += 7) {
+            expect(today[currentIndex(today, minute)].id).toBe(
+                remainingPhase(today, tomorrow, minute).id,
+            );
+        }
+    });
+
+    it('has nothing to point at when there are no segments', () => {
+        expect(currentIndex([], 720)).toBe(-1);
+    });
+});
+
+describe('the row the clock is in', () => {
+    const POSITION = { lat: MONTEVIDEO[0], lon: MONTEVIDEO[1] };
+    const ZONE = MONTEVIDEO[2];
+
+    // The card's own elements, mounted once: `renderDaylight` caches them on
+    // first use, so a fresh body per test would leave it drawing into orphans.
+    beforeAll(() => {
+        document.body.innerHTML = [
+            '<section id="daylight" hidden>',
+            '<p id="daylight-place"></p>',
+            '<p id="daylight-summary"></p>',
+            '<div id="daylight-bar"></div>',
+            '<div id="daylight-axis"></div>',
+            '<details class="daylight-details">',
+            '<summary class="daylight-toggle"></summary>',
+            '<ul id="daylight-phases"></ul>',
+            '</details>',
+            '</section>',
+        ].join('');
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    /** Montevideo is UTC-3, so local 21:27 is 00:27 UTC the next morning. */
+    const pin = (hour, minute = 0) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(Date.UTC(2026, 7, 31, hour + 3, minute)));
+    };
+
+    const rows = () => [...document.querySelectorAll('#daylight-phases li')];
+    const marked = () => rows().filter((row) => row.classList.contains('is-now'));
+
+    const drawAt = (hour, minute = 0) => {
+        pin(hour, minute);
+        renderDaylight(POSITION, ZONE);
+        return rows();
+    };
+
+    it('bolds exactly one row, whatever the hour', () => {
+        for (let hour = 0; hour < 24; hour += 1) {
+            drawAt(hour, 13);
+            expect(marked()).toHaveLength(1);
+            vi.useRealTimers();
+        }
+    });
+
+    it('bolds the LAST Night at 21:27', () => {
+        const all = drawAt(21, 27);
+        expect(marked()).toEqual([all[all.length - 1]]);
+        // The last row's end renders as 00:00 — midnight named the way a clock does.
+        expect(marked()[0].textContent).toContain('19:49–00:00');
+    });
+
+    it('bolds the FIRST Night after midnight', () => {
+        const all = drawAt(0, 30);
+        expect(marked()).toEqual([all[0]]);
+        expect(marked()[0].textContent).toContain('00:00–');
+    });
+
+    it('bolds Daylight at noon, and only then', () => {
+        drawAt(12);
+        expect(marked()[0].querySelector('.daylight-dot').className).toContain('phase-day');
+    });
+
+    it('names the current row for a screen reader too', () => {
+        drawAt(12);
+        expect(rows().filter((row) => row.hasAttribute('aria-current'))).toEqual(marked());
+    });
+
+    it('moves the mark on the clock tick without rebuilding the table', () => {
+        // 18:20 is daylight; sunset is 18:25 and civil twilight follows.
+        const before = drawAt(18, 20);
+        const wasMarked = marked()[0];
+
+        pin(18, 30);
+        refreshRemaining(POSITION, ZONE);
+
+        expect(rows()).toEqual(before);
+        expect(marked()).toHaveLength(1);
+        expect(marked()[0]).not.toBe(wasMarked);
+        expect(wasMarked.hasAttribute('aria-current')).toBe(false);
+        expect(marked()[0].querySelector('.daylight-dot').className).toContain('phase-civil');
     });
 });
