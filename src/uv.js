@@ -100,22 +100,30 @@ export function uvBand(uv) {
 const UV_ENDPOINT = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
 /**
- * Current UV index at a coordinate, plus the IANA zone that coordinate sits in.
+ * Current UV index at a coordinate, the IANA zone that coordinate sits in, and
+ * the same index for each hour of the coordinate's own calendar day.
  *
  * `timezone=auto` is what makes the clock on the card the visitor's LOCAL time
  * rather than their device's — the two differ for anyone travelling with a
  * phone that has not caught up, which is precisely the audience for a "can I go
- * outside" answer.
+ * outside" answer. It also makes `forecast_days=1` mean "today where you are":
+ * the hourly series starts at that zone's midnight, which is exactly the strip
+ * the card draws.
+ *
+ * Times come back as epoch seconds (`timeformat=unixtime`) rather than the
+ * default zone-local ISO strings without an offset, so "which hour is now" is
+ * a comparison of two numbers instead of a reconstruction of the zone's offset
+ * — which is not even constant across a day that changes clocks.
  *
  * @param {number} lat
  * @param {number} lon
  * @param {AbortSignal} [signal]
- * @returns {Promise<{uv: number, timezone: string, observedAt: string}>}
+ * @returns {Promise<{uv: number, timezone: string, hourly: {time: number, uv: number}[]}>}
  */
 export async function fetchUv(lat, lon, signal) {
     const url =
         `${UV_ENDPOINT}?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}` +
-        '&current=uv_index&timezone=auto&forecast_days=1';
+        '&current=uv_index&hourly=uv_index&timezone=auto&forecast_days=1&timeformat=unixtime';
 
     const response = await fetch(url, { signal });
     if (!response.ok) throw new Error(`UV service responded ${response.status}`);
@@ -131,6 +139,32 @@ export async function fetchUv(lat, lon, signal) {
     return {
         uv: Math.max(0, uv),
         timezone: data.timezone || 'UTC',
-        observedAt: data.current.time,
+        hourly: hourlySeries(data.hourly),
     };
+}
+
+/**
+ * The hourly series as pairs, or nothing at all.
+ *
+ * The current reading is the promise of the page and the series is a bonus,
+ * so a bad series does not fail the fetch — the chart just stays hidden. But
+ * it is all or nothing: one hour that came back `null` drawn as a zero would
+ * show a green gap where the data has one, which is the same lie the current
+ * reading refuses to tell, only smaller.
+ *
+ * @param {{time?: unknown[], uv_index?: unknown[]}|undefined} hourly
+ * @returns {{time: number, uv: number}[]}
+ */
+function hourlySeries(hourly) {
+    const times = hourly?.time;
+    const values = hourly?.uv_index;
+    if (!Array.isArray(times) || !Array.isArray(values) || times.length !== values.length) {
+        return [];
+    }
+
+    const series = times.map((time, i) => ({ time, uv: values[i] }));
+    const sound = series.every(
+        (h) => Number.isFinite(h.time) && typeof h.uv === 'number' && Number.isFinite(h.uv),
+    );
+    return sound ? series.map((h) => ({ time: h.time, uv: Math.max(0, h.uv) })) : [];
 }

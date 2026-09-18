@@ -23,11 +23,22 @@ look past.
    tens of kilometres, so a GPS fix would buy no accuracy that changes the colour, and would
    cost a cold-start wait and the receiver's battery.
 2. That position goes to [Open-Meteo's air-quality API](https://open-meteo.com/en/docs/air-quality-api)
-   (no key, no quota registration), which answers with the current UV index and the IANA
-   timezone of the coordinate — which is what makes the clock on the card local to _there_
-   rather than to the device.
+   (no key, no quota registration), which answers with the current UV index, the same index
+   for each hour of the coordinate's own calendar day, and the IANA timezone of the
+   coordinate — which is what makes the clock on the card local to _there_ rather than to
+   the device.
 3. The reading is refreshed every 10 minutes, whenever the visitor moves more than 10 km, and
    whenever a parked tab comes back to the foreground.
+
+Under the number, the day by the hour: 24 bars in the same five colours, the hours already
+gone dimmed, a line at "now" to the minute, and the peak named beside the title. The number
+says whether; the strip says when — whether to wait an hour, or go now before it climbs. Bar
+heights are drawn against a fixed ceiling of 11, where the scale's own top band begins, so a
+bar touching the top means "extreme" on any day in any place and a winter day is honestly a
+row of small green bars. Hovering a bar (or a screen reader) gets its hour, value and band.
+The series comes in the same request as the number, and a series with a hole in it is dropped
+whole rather than drawn with a zero — a green gap where the data has one would be the same
+lie the current reading refuses to tell, only smaller.
 
 A second card under the reading gives the day its own shape: a bar of the 24 hours divided
 into night, astronomical, nautical and civil twilight and daylight, and behind a tap the same
@@ -93,13 +104,16 @@ returning visitors keep the previous copy for up to ten more (Pages sends
 index.html          markup and the meta-tag CSP
 css/styles.css      one screen's worth of styles
 src/uv.js           the domain model: bands, rounding, formatting, the API call
+src/forecast.js     the hourly strip on the UV card: bars, the dimmed past, the line at "now"
+src/axis.js         the 00–24 ruler both strips share
 src/sun.js          the sun's phases for a date and a coordinate, computed on the device
 src/daylight.js     the daylight card: the 24-hour bar and the phase table
 src/map.js          Leaflet — basemap, "you are here", and where on screen it sits
 src/help.js         the ⓘ sheet: what the index is, the levels, what it does
 src/i18n.js         copy in en/es/ru, and the language runtime
 src/app.js          wiring: position → reading → wash, and the switcher
-tests/uv.test.js    band boundaries, formatting, API failure modes
+tests/uv.test.js    band boundaries, formatting, API failure modes, the hourly series
+tests/forecast.test.js  bar colours and heights, "now", the peak, what hides when
 tests/i18n.test.js  language resolution, persistence, copy completeness
 tests/sun.test.js   solar anchors, day ordering, polar and white-night cases
 tests/daylight.test.js  axis coverage, zone offsets, published-times agreement

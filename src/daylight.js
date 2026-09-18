@@ -9,14 +9,12 @@
 
 import { sunPhases, sunTimes } from './sun.js';
 import { localeTag, t } from './i18n.js';
+import { renderHourAxis } from './axis.js';
 
 const MIN_PER_DAY = 1440;
 
 /** Where the phase table's open/closed state is kept, next to `ssm-lang`. */
 const PHASES_KEY = 'ssm-phases';
-
-/** Ticks under the bar. Every six hours is enough to read it by. */
-const AXIS_HOURS = [0, 6, 12, 18, 24];
 
 let dom = null;
 
@@ -361,7 +359,7 @@ export function renderDaylight(position, timezone) {
 
     renderSummary(el.summary, state);
     renderBar(el.bar, segments);
-    renderAxis(el.axis);
+    renderHourAxis(el.axis);
     renderPhases(el.phases, segments, state.nowMin);
 
     el.card.hidden = false;
@@ -401,19 +399,6 @@ function renderBar(target, segments) {
         }),
     );
     target.setAttribute('aria-label', t('daylight.barAria'));
-}
-
-/** Hour ticks, spaced by their real position rather than by flex. */
-function renderAxis(target) {
-    target.replaceChildren(
-        ...AXIS_HOURS.map((hour) => {
-            const tick = document.createElement('span');
-            tick.className = 'daylight-tick';
-            tick.style.left = `${(hour / 24) * 100}%`;
-            tick.textContent = String(hour).padStart(2, '0');
-            return tick;
-        }),
-    );
 }
 
 /** The table under the bar: every phase the day actually has, with its hours. */
