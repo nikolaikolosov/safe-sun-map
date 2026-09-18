@@ -105,7 +105,7 @@ index.html          markup and the meta-tag CSP
 css/styles.css      one screen's worth of styles
 src/uv.js           the domain model: bands, rounding, formatting, the API call
 src/forecast.js     the hourly strip on the UV card: bars, the dimmed past, the line at "now"
-src/axis.js         the 00–24 ruler both strips share
+src/axis.js         the 00–24 ruler both strips share, a tick every three hours
 src/sun.js          the sun's phases for a date and a coordinate, computed on the device
 src/daylight.js     the daylight card: the 24-hour bar and the phase table
 src/map.js          Leaflet — basemap, "you are here", and where on screen it sits
