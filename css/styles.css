@@ -215,6 +215,64 @@ body {
     color: var(--ink-muted);
 }
 
+/* ---------- Today by hour ---------- */
+
+.forecast {
+    margin-top: 12px;
+}
+
+.forecast-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.forecast-peak {
+    flex: none;
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+/* One flex child per hour, grown from the baseline. The chart is a fixed 40px
+   and every bar's height is a share of it (src/forecast.js), so the bars can
+   be compared with yesterday's, not only with each other. */
+.forecast-chart {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 40px;
+    margin-top: 8px;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.forecast-bar {
+    flex: 1 1 0;
+    min-width: 0;
+    border-radius: 2px 2px 0 0;
+    transition: opacity 300ms ease;
+}
+
+/* Gone, but kept: the shape of the morning is context for the afternoon, and a
+   strip that starts at "now" would change shape every hour. */
+.forecast-bar.is-past {
+    opacity: 0.35;
+}
+
+/* "Now", to the minute. Positioned by src/forecast.js on the clock's tick. */
+.forecast-now {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--ink);
+    pointer-events: none;
+}
+
 /* ---------- Daylight card ---------- */
 
 /* Sits under the UV card, sharing its material and its gutters so the two
@@ -307,15 +365,18 @@ body {
     background: #cfe6fb;
 }
 
-/* Ticks are positioned by their real place on the axis, not distributed, so
-   they line up with the bands above them. */
-.daylight-axis {
+/* ---------- The hour axis ---------- */
+
+/* Under the UV bars and under the daylight bar alike (src/axis.js). Ticks are
+   positioned by their real place on the axis, not distributed, so they line
+   up with whatever is drawn above them. */
+.hour-axis {
     position: relative;
     height: 14px;
     margin-top: 2px;
 }
 
-.daylight-tick {
+.hour-tick {
     position: absolute;
     top: 0;
     transform: translateX(-50%);
@@ -324,11 +385,11 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-.daylight-tick:first-child {
+.hour-tick:first-child {
     transform: none;
 }
 
-.daylight-tick:last-child {
+.hour-tick:last-child {
     transform: translateX(-100%);
 }
 

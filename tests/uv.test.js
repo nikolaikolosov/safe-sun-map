@@ -110,17 +110,39 @@ describe('fetchUv', () => {
             vi.fn().mockResolvedValue({ ok, status: ok ? 200 : 503, json: async () => body }),
         );
 
-    it('returns the reading and the zone of the coordinate', async () => {
+    /** Midnight in Montevideo on 18 Sep 2026, then 24 hours of a spring day. */
+    const MIDNIGHT = 1789700400;
+    const times = Array.from({ length: 24 }, (_, h) => MIDNIGHT + h * 3600);
+    const values = [0, 0, 0, 0, 0, 0, 0, 0.1, 0.65, 1.9, 3.5, 5.05, 5.95, 5.8, 4.6, 2.9, 1.4];
+    while (values.length < 24) values.push(0);
+
+    it('returns the reading, the zone of the coordinate, and the day hour by hour', async () => {
         respondWith({
             timezone: 'America/Montevideo',
-            current: { time: '2026-08-22T12:00', uv_index: 4.2 },
+            current: { time: MIDNIGHT + 12 * 3600, uv_index: 4.2 },
+            hourly: { time: times, uv_index: values },
         });
 
-        await expect(fetchUv(-34.9, -56.16)).resolves.toEqual({
-            uv: 4.2,
-            timezone: 'America/Montevideo',
-            observedAt: '2026-08-22T12:00',
+        const reading = await fetchUv(-34.9, -56.16);
+        expect(reading.uv).toBe(4.2);
+        expect(reading.timezone).toBe('America/Montevideo');
+        expect(reading.hourly).toHaveLength(24);
+        expect(reading.hourly[12]).toEqual({ time: MIDNIGHT + 12 * 3600, uv: 5.95 });
+    });
+
+    it('asks for today by the hour, in epoch seconds', async () => {
+        respondWith({
+            timezone: 'UTC',
+            current: { time: 0, uv_index: 1 },
+            hourly: { time: times, uv_index: values },
         });
+        await fetchUv(0, 0);
+
+        const url = new URL(fetch.mock.calls[0][0]);
+        expect(url.searchParams.get('hourly')).toBe('uv_index');
+        expect(url.searchParams.get('forecast_days')).toBe('1');
+        expect(url.searchParams.get('timezone')).toBe('auto');
+        expect(url.searchParams.get('timeformat')).toBe('unixtime');
     });
 
     it('rejects an HTTP failure', async () => {
@@ -129,7 +151,48 @@ describe('fetchUv', () => {
     });
 
     it('rejects a 200 that carries no reading, rather than painting the map green', async () => {
-        respondWith({ timezone: 'UTC', current: { time: '2026-08-22T12:00', uv_index: null } });
+        respondWith({
+            timezone: 'UTC',
+            current: { time: 0, uv_index: null },
+            hourly: { time: times, uv_index: values },
+        });
         await expect(fetchUv(0, 0)).rejects.toThrow('no reading');
+    });
+
+    it('keeps the reading when the hourly series is missing — the strip is the bonus', async () => {
+        respondWith({ timezone: 'UTC', current: { time: 0, uv_index: 2.5 } });
+        await expect(fetchUv(0, 0)).resolves.toMatchObject({ uv: 2.5, hourly: [] });
+    });
+
+    it('drops the whole series over one missing hour, rather than drawing it as zero', async () => {
+        const holed = [...values];
+        holed[15] = null;
+        respondWith({
+            timezone: 'UTC',
+            current: { time: 0, uv_index: 2.5 },
+            hourly: { time: times, uv_index: holed },
+        });
+        await expect(fetchUv(0, 0)).resolves.toMatchObject({ uv: 2.5, hourly: [] });
+    });
+
+    it('drops a series whose times and values do not line up', async () => {
+        respondWith({
+            timezone: 'UTC',
+            current: { time: 0, uv_index: 2.5 },
+            hourly: { time: times.slice(0, 23), uv_index: values },
+        });
+        await expect(fetchUv(0, 0)).resolves.toMatchObject({ hourly: [] });
+    });
+
+    it('clamps a negative hour into zero, like the reading', async () => {
+        const dipped = [...values];
+        dipped[3] = -0.2;
+        respondWith({
+            timezone: 'UTC',
+            current: { time: 0, uv_index: 2.5 },
+            hourly: { time: times, uv_index: dipped },
+        });
+        const reading = await fetchUv(0, 0);
+        expect(reading.hourly[3].uv).toBe(0);
     });
 });

@@ -73,6 +73,20 @@
                         <span id="uv-band"></span>
                     </p>
                     <p id="uv-advice" class="card-advice"></p>
+
+                    <!-- The same index for each hour of today, as bars in the
+                         band colours: the number above says whether, this says
+                         when. Filled by src/forecast.js from the same request
+                         that brought the number. -->
+                    <div id="forecast" class="forecast" hidden>
+                        <div class="forecast-head">
+                            <p class="card-label" data-i18n="forecast.title">Today by hour</p>
+                            <p id="forecast-peak" class="forecast-peak"></p>
+                        </div>
+                        <div id="forecast-chart" class="forecast-chart" role="img"></div>
+                        <div id="forecast-axis" class="hour-axis" aria-hidden="true"></div>
+                    </div>
+
                     <p id="clock" class="card-clock"></p>
                 </div>
 
@@ -100,7 +114,7 @@
                 <p id="daylight-summary" class="daylight-summary"></p>
 
                 <div id="daylight-bar" class="daylight-bar" role="img"></div>
-                <div id="daylight-axis" class="daylight-axis" aria-hidden="true"></div>
+                <div id="daylight-axis" class="hour-axis" aria-hidden="true"></div>
 
                 <!-- The bar answers at a glance and stays; the nine rows behind
                      it are reference, and on a small phone they were most of

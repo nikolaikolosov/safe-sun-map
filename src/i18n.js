@@ -71,6 +71,8 @@ export const STRINGS = {
         'phase.day': 'Daylight',
         'unit.h': 'h',
         'unit.min': 'min',
+        'forecast.title': 'Today by hour',
+        'forecast.peak': 'peak',
     },
     es: {
         'band.low': 'Bajo',
@@ -127,6 +129,8 @@ export const STRINGS = {
         'phase.day': 'Luz del día',
         'unit.h': 'h',
         'unit.min': 'min',
+        'forecast.title': 'Hoy por hora',
+        'forecast.peak': 'máx.',
     },
     ru: {
         'band.low': 'Низкий',
@@ -182,6 +186,8 @@ export const STRINGS = {
         'phase.day': 'Световой день',
         'unit.h': 'ч',
         'unit.min': 'мин',
+        'forecast.title': 'Сегодня по часам',
+        'forecast.peak': 'пик',
     },
 };
 

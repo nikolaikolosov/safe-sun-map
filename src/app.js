@@ -8,6 +8,7 @@
 
 import { fetchUv, formatUv, uvBand } from './uv.js';
 import { collapsedBottomPx, initDaylight, refreshRemaining, renderDaylight } from './daylight.js';
+import { refreshForecast, renderForecast } from './forecast.js';
 import { initMap, showUser } from './map.js';
 import { initHelp } from './help.js';
 import {
@@ -70,7 +71,8 @@ let inFlight = null;
  * means the switch replays it instead of the card going blank or, worse,
  * keeping the old language until the next fix arrives ten minutes later.
  *
- * @type {{kind: 'reading', uv: number, position: {lat: number, lon: number}}
+ * @type {{kind: 'reading', uv: number, hourly: {time: number, uv: number}[],
+ *     position: {lat: number, lon: number}}
  *   | {kind: 'status', key: string, retryable: boolean}}
  */
 let view = { kind: 'status', key: 'status.locating', retryable: false };
@@ -145,12 +147,13 @@ function needsRefresh(position) {
 /**
  * Shows a reading.
  *
- * @param {number} uv
+ * @param {{uv: number, hourly: {time: number, uv: number}[]}} reading - the
+ *   index now, and for each hour of today
  * @param {{lat: number, lon: number}} position - where it was read, for the
  *   sunrise/sunset arithmetic
  */
-function showReading(uv, position) {
-    view = { kind: 'reading', uv, position };
+function showReading(reading, position) {
+    view = { kind: 'reading', uv: reading.uv, hourly: reading.hourly, position };
     render();
 }
 
@@ -177,6 +180,7 @@ function render() {
         dom.value.textContent = formatUv(view.uv, localeTag());
         dom.band.textContent = t('band.' + band.id);
         dom.advice.textContent = t('advice.' + band.id);
+        renderForecast(view.hourly, timezone);
         renderDaylight(view.position, timezone);
         sunDrawnFor = new Date().toDateString();
 
@@ -226,9 +230,11 @@ function updateClock() {
         return;
     }
 
-    // Otherwise only the countdown moves. Redrawing the whole card three times
-    // a minute would rebuild the DOM inside an open phase table for nothing.
+    // Otherwise only the moving parts move: the countdown, and "now" on the
+    // hourly strip. Redrawing the whole card three times a minute would
+    // rebuild the DOM inside an open phase table for nothing.
     refreshRemaining(view.position, timezone);
+    refreshForecast(view.hourly);
 }
 
 /**
@@ -250,7 +256,7 @@ async function refreshUv(position) {
         timezone = reading.timezone;
         fetchedAt = position;
         fetchedWhen = Date.now();
-        showReading(reading.uv, position);
+        showReading(reading, position);
     } catch (error) {
         if (error.name === 'AbortError') return;
         console.warn('[uv] could not read the index:', error.message);
