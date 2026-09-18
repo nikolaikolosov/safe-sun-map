@@ -52,7 +52,8 @@ clock and everything else is computed on the device from that date and the posit
 roll over at midnight on their own.
 
 The line above the bar counts down what is left of the phase you are actually in: daylight
-until sunset, twilight until it turns, night until dawn. Night is the case that needs care —
+until sunset, each twilight by its own name — civil, nautical, astronomical — until it turns,
+night until dawn. Night is the case that needs care —
 on the bar it is two segments, one running into midnight and one out of it, but it is a single
 stretch of darkness, so at 21:00 the answer reaches into tomorrow's small hours while at 02:00
 it stops at this morning's dawn. In the table that same phase is the bold row — the lower
