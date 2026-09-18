@@ -6,8 +6,13 @@
  * time from one to the other.
  */
 
-/** Every six hours is enough to read a day by. */
-const AXIS_HOURS = [0, 6, 12, 18, 24];
+/**
+ * Every three hours. Six was enough to read the daylight bar by, but the UV
+ * strip is read for an hour — "until 15", "after 16" — and with a tick only
+ * every six the eye had to count bars to find it. Nine two-digit labels fit
+ * the card's width with room between them; twenty-five would not.
+ */
+const AXIS_HOURS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 
 /**
  * Ticks positioned by their real place on the axis rather than distributed,
