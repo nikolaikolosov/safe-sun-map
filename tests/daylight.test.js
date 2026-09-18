@@ -11,6 +11,7 @@ import {
     zoneOffsetMin,
 } from '../src/daylight.js';
 import { sunPhases } from '../src/sun.js';
+import { setLang } from '../src/i18n.js';
 
 const MIN_PER_DAY = 1440;
 
@@ -434,6 +435,31 @@ describe('the row the clock is in', () => {
     });
 
     const nowLine = () => document.getElementById('daylight-now');
+    const summary = () => document.getElementById('daylight-summary').textContent;
+
+    // 31 Aug 2026 in Montevideo: sunset 18:25, civil to 18:51, nautical to
+    // 19:20, astronomical to 19:49. Each twilight is named as itself — "civil
+    // twilight left" and "nautical twilight left" are different facts.
+    it.each([
+        [18, 35, 'Civil twilight left'],
+        [19, 0, 'Nautical twilight left'],
+        [19, 30, 'Astronomical twilight left'],
+    ])('at %i:%i names the twilight it is counting down: %s', (h, m, label) => {
+        setLang('en', { persist: false });
+        drawAt(h, m);
+        expect(summary()).toContain(label);
+        expect(summary()).not.toMatch(/(^|[^a-z])Twilight left/);
+    });
+
+    it('names the twilight in the language in force', () => {
+        setLang('ru', { persist: false });
+        drawAt(19, 0);
+        expect(summary()).toContain('Навигационных сумерек осталось');
+        setLang('es', { persist: false });
+        drawAt(19, 30);
+        expect(summary()).toContain('Crepúsculo astronómico restante');
+        setLang('en', { persist: false });
+    });
 
     it('puts the line at "now" over the bar, to the minute', () => {
         drawAt(14, 30);

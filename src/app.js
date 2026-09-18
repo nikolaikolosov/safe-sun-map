@@ -93,6 +93,15 @@ let lastFix = null;
 let sunDrawnFor = null;
 
 /**
+ * The card bottom the dot was last placed against. The clock tick redraws
+ * the countdown in place, and a label that wraps to a second line — Russian's
+ * "Астрономических сумерек осталось" does, on every phone — moves that bottom
+ * without a render; the tick compares against this to notice.
+ * @type {number|null}
+ */
+let anchoredTo = null;
+
+/**
  * Puts the dot on screen where the layout says it goes: centred horizontally,
  * and vertically halfway between the bottom of the daylight card and the
  * bottom of the screen.
@@ -110,6 +119,7 @@ function placeUser() {
 
     const stack = document.querySelector('.stack');
     const above = collapsedBottomPx() ?? stack?.getBoundingClientRect().bottom ?? 0;
+    anchoredTo = above;
     showUser(lastFix.lat, lastFix.lon, lastFix.accuracy, (above + window.innerHeight) / 2);
 }
 
@@ -235,6 +245,10 @@ function updateClock() {
     // rebuild the DOM inside an open phase table for nothing.
     refreshRemaining(view.position, timezone);
     refreshForecast(view.hourly);
+
+    // A countdown label a line longer or shorter than the last one moved the
+    // card's bottom, and the dot is anchored to it.
+    if (collapsedBottomPx() !== anchoredTo) placeUser();
 }
 
 /**

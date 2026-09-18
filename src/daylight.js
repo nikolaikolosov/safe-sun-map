@@ -164,19 +164,6 @@ export function localSegments(phases, offsetMin) {
 }
 
 /**
- * Which label a phase gets on the "time left" line. The three twilights share
- * one: the bar and the table already say which twilight it is, and the line is
- * answering "how long until this changes", where they are one answer.
- */
-const REMAINING_KEY = {
-    day: 'remaining.day',
-    night: 'remaining.night',
-    civil: 'remaining.twilight',
-    nautical: 'remaining.twilight',
-    astronomical: 'remaining.twilight',
-};
-
-/**
  * Local minutes since midnight, keeping the fraction — the countdown is worth
  * rounding to the nearest minute rather than truncating to it.
  *
@@ -382,9 +369,13 @@ function renderSummary(target, { segments, tomorrow, nowMin, sun }) {
         parts.push(eventSpan('↓', 'sun.sunset', clockAt(day.endMin)));
     }
 
+    // Named by phase, each twilight by its own name: "civil twilight left" is
+    // a different fact from "nautical twilight left" — the first still has
+    // light to walk home by, the second does not — and the line is where
+    // someone looks for it, not the table three rows down.
     const left = remainingPhase(segments, tomorrow, nowMin);
     if (left) {
-        parts.push(span(`${t(REMAINING_KEY[left.id])} ${formatDuration(left.minutes * 60000)}`));
+        parts.push(span(`${t('remaining.' + left.id)} ${formatDuration(left.minutes * 60000)}`));
     }
 
     target.replaceChildren(...parts);
