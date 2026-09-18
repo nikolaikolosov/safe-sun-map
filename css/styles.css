@@ -261,8 +261,13 @@ body {
     opacity: 0.35;
 }
 
-/* "Now", to the minute. Positioned by src/forecast.js on the clock's tick. */
-.forecast-now {
+/* "Now", to the minute — the same line over the UV bars and over the daylight
+   bar, each positioned by its owner on the clock's tick. It runs 3px past the
+   strip's edges so it reads as a marker laid over the strip rather than a
+   part of it. The white halo is for the daylight bar: its night bands are as
+   dark as the ink, and without the halo the line would sink into them for a
+   third of the day. */
+.now-line {
     position: absolute;
     top: -3px;
     bottom: -3px;
@@ -270,6 +275,7 @@ body {
     margin-left: -1px;
     border-radius: 1px;
     background: var(--ink);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 85%);
     pointer-events: none;
 }
 
@@ -328,12 +334,18 @@ body {
 
 /* ---------- The 24-hour bar ---------- */
 
+/* The bar and the line at "now" over it. The line is positioned against this
+   box, because the bar itself clips to its rounded corners. */
+.daylight-track {
+    position: relative;
+    margin-top: 10px;
+}
+
 /* Flex, with each band's grow factor set to its length in minutes: the bar
    divides the width in exactly the proportions the day has. */
 .daylight-bar {
     display: flex;
     height: 14px;
-    margin-top: 10px;
     border-radius: 4px;
     overflow: hidden;
 }

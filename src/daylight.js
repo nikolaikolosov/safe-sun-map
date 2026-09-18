@@ -26,6 +26,7 @@ function elements() {
             place: document.getElementById('daylight-place'),
             summary: document.getElementById('daylight-summary'),
             bar: document.getElementById('daylight-bar'),
+            now: document.getElementById('daylight-now'),
             axis: document.getElementById('daylight-axis'),
             phases: document.getElementById('daylight-phases'),
         };
@@ -306,8 +307,8 @@ function compute(position, zone) {
 }
 
 /**
- * Redraws the two things that move with the clock: the "time left" line and
- * which row is bold.
+ * Redraws the three things that move with the clock: the "time left" line,
+ * which row is bold, and where the line at "now" sits on the bar.
  *
  * They are the only parts of the card that change between position fixes, and
  * they have to agree — a boundary that advanced the countdown but left the
@@ -328,6 +329,7 @@ export function refreshRemaining(position, timezone) {
 
     renderSummary(el.summary, state);
     markCurrentPhase(el.phases, state.segments, state.nowMin);
+    placeNow(el.now, state.nowMin);
 }
 
 /**
@@ -359,6 +361,7 @@ export function renderDaylight(position, timezone) {
 
     renderSummary(el.summary, state);
     renderBar(el.bar, segments);
+    placeNow(el.now, state.nowMin);
     renderHourAxis(el.axis);
     renderPhases(el.phases, segments, state.nowMin);
 
@@ -385,6 +388,21 @@ function renderSummary(target, { segments, tomorrow, nowMin, sun }) {
     }
 
     target.replaceChildren(...parts);
+}
+
+/**
+ * Puts the line at "now" over the bar, to the minute. The bar is laid out in
+ * the location's local minutes, and so is `nowMin`, so the line lands on the
+ * same axis the bands were drawn on — and on the same one the UV strip's line
+ * uses, one card up.
+ *
+ * @param {HTMLElement|null} line
+ * @param {number} nowMin - local minutes since midnight
+ */
+function placeNow(line, nowMin) {
+    if (!line) return;
+    line.style.left = `${(nowMin / MIN_PER_DAY) * 100}%`;
+    line.hidden = false;
 }
 
 /** The 24-hour bar itself: one flex child per phase, width = its share. */

@@ -127,7 +127,7 @@ export function renderForecast(hourly, timezone) {
     });
 
     const now = document.createElement('span');
-    now.className = 'forecast-now';
+    now.className = 'now-line';
     now.setAttribute('aria-hidden', 'true');
 
     el.chart.replaceChildren(...bars, now);
@@ -158,7 +158,7 @@ export function refreshForecast(hourly) {
     if (!el.block || el.block.hidden) return;
 
     const bars = el.chart.querySelectorAll('.forecast-bar');
-    const line = el.chart.querySelector('.forecast-now');
+    const line = el.chart.querySelector('.now-line');
     if (bars.length !== hourly.length || !line) return;
 
     const nowSec = Date.now() / 1000;

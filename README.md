@@ -41,8 +41,9 @@ whole rather than drawn with a zero — a green gap where the data has one would
 lie the current reading refuses to tell, only smaller.
 
 A second card under the reading gives the day its own shape: a bar of the 24 hours divided
-into night, astronomical, nautical and civil twilight and daylight, and behind a tap the same
-phases as rows with their hours — the layout
+into night, astronomical, nautical and civil twilight and daylight, the same line at "now"
+across it as on the UV strip — the two sit at the same width on the same ruler, so the line is
+at the same pixel on both — and behind a tap the same phases as rows with their hours — the layout
 [timeanddate.com](https://www.timeanddate.com/astronomy/) uses. The bar answers at a glance
 and stays; the nine rows are reference, and on a small phone they were most of the screen.
 Whether the table is open is remembered between visits, like the language. The date comes from the device

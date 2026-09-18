@@ -364,7 +364,10 @@ describe('the row the clock is in', () => {
             '<section id="daylight" hidden>',
             '<p id="daylight-place"></p>',
             '<p id="daylight-summary"></p>',
+            '<div class="daylight-track">',
             '<div id="daylight-bar"></div>',
+            '<span id="daylight-now" class="now-line" hidden></span>',
+            '</div>',
             '<div id="daylight-axis"></div>',
             '<details class="daylight-details">',
             '<summary class="daylight-toggle"></summary>',
@@ -428,6 +431,29 @@ describe('the row the clock is in', () => {
     it('names the current row for a screen reader too', () => {
         drawAt(12);
         expect(rows().filter((row) => row.hasAttribute('aria-current'))).toEqual(marked());
+    });
+
+    const nowLine = () => document.getElementById('daylight-now');
+
+    it('puts the line at "now" over the bar, to the minute', () => {
+        drawAt(14, 30);
+        expect(nowLine().hidden).toBe(false);
+        // 14:30 is 870 of the day's 1440 minutes.
+        expect(parseFloat(nowLine().style.left)).toBeCloseTo((870 / 1440) * 100, 6);
+    });
+
+    it("lays the line on the location's clock, like the bar under it", () => {
+        // 00:30 in Montevideo: the line is at the very start of the day even
+        // though it is 03:30 UTC — the bar is in Montevideo's minutes too.
+        drawAt(0, 30);
+        expect(parseFloat(nowLine().style.left)).toBeCloseTo((30 / 1440) * 100, 6);
+    });
+
+    it('moves the line on the tick, together with the countdown', () => {
+        drawAt(14, 30);
+        pin(15, 15);
+        refreshRemaining(POSITION, ZONE);
+        expect(parseFloat(nowLine().style.left)).toBeCloseTo((915 / 1440) * 100, 6);
     });
 
     it('moves the mark on the clock tick without rebuilding the table', () => {
