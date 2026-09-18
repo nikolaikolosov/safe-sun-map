@@ -88,7 +88,7 @@ describe('the strip', () => {
 
     const block = () => document.getElementById('forecast');
     const bars = () => [...document.querySelectorAll('.forecast-bar')];
-    const line = () => document.querySelector('.forecast-now');
+    const line = () => document.querySelector('.now-line');
 
     /** Pins the device clock to a Montevideo wall-clock time and draws. */
     const drawAt = (h, m = 0, lang = 'en') => {

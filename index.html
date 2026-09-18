@@ -113,7 +113,13 @@
 
                 <p id="daylight-summary" class="daylight-summary"></p>
 
-                <div id="daylight-bar" class="daylight-bar" role="img"></div>
+                <!-- The line at "now" sits beside the bar, not in it: the bar
+                     clips to its rounded corners, and the line has to run past
+                     its top and bottom edges the way it does on the UV strip. -->
+                <div class="daylight-track">
+                    <div id="daylight-bar" class="daylight-bar" role="img"></div>
+                    <span id="daylight-now" class="now-line" aria-hidden="true" hidden></span>
+                </div>
                 <div id="daylight-axis" class="hour-axis" aria-hidden="true"></div>
 
                 <!-- The bar answers at a glance and stays; the nine rows behind
