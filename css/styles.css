@@ -218,6 +218,9 @@ body {
 /* ---------- Today by hour ---------- */
 
 .forecast {
+    /* Shared by the bars and the hour row below them, which is what keeps
+       each hour under its own bar. */
+    --forecast-gap: 3px;
     margin-top: 12px;
 }
 
@@ -235,21 +238,21 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-/* One column per hour. The bars stand in a fixed 40px and every bar's height
-   is a share of it (src/forecast.js), so the bars can be compared with
-   yesterday's, not only with each other. Above that, room for the tallest
-   bar's value: it is sized for four characters on a full-height bar — "12,4",
-   which the tropics reach — so a high day never pushes a number off the card.
-   Content-box, so `height` is the bars' own 40px and the room is added on. */
+/* One column per sunlit hour — the night is left off (src/forecast.js), which
+   is what gives each hour room for its value upright. The bars stand in a
+   fixed 40px and every bar's height is a share of it, so the bars can be
+   compared with yesterday's, not only with each other. Above that, room for
+   the tallest bar's value, one line of it. Content-box, so `height` is the
+   bars' own 40px and the room is added on. */
 .forecast-chart {
-    --headroom: 24px;
+    --headroom: 16px;
     position: relative;
     display: flex;
-    gap: 2px;
+    gap: var(--forecast-gap);
     box-sizing: content-box;
     height: 40px;
     padding-top: var(--headroom);
-    margin-top: 2px;
+    margin-top: 4px;
     border-bottom: 1px solid var(--hairline);
 }
 
@@ -264,45 +267,72 @@ body {
 
 .forecast-bar {
     flex: 1 1 auto;
-    border-radius: 2px 2px 0 0;
+    border-radius: 3px 3px 0 0;
 }
 
 /* Gone, but kept: the shape of the morning is context for the afternoon, and a
-   strip that starts at "now" would change shape every hour. The value dims
-   with its bar — they are one column. */
-.forecast-hour.is-past {
+   strip that starts at "now" would change shape every hour. The value and the
+   hour dim with their bar. */
+.forecast-hour.is-past,
+.forecast-time.is-past {
     opacity: 0.35;
 }
 
-/* The hour's value, standing on the tip of its bar and reading upward. On end
-   because the bars are 9–12px wide on a phone and 12px at most on a desktop,
-   and a value like "7,5" set upright is about 14px: twenty-four of them side
-   by side run together into one unreadable string. On end, each needs only
-   its own line height.
-   `bottom` is the bar's height (set by src/forecast.js) and the margin lifts
-   it 2px clear of the bar. vertical-rl plus a half-turn is the portable way
-   to read bottom-to-top; `sideways-lr` would say it directly but is not in
-   every engine yet.
+/* The hour's value, upright, standing on the tip of its bar. `bottom` is the
+   bar's height (set by src/forecast.js) and the margin lifts it clear.
    The white ground and the z-index are for the line at "now": it passes
    behind the current hour's value instead of striking through it. */
 .forecast-value {
     position: absolute;
     left: 50%;
     z-index: 1;
-    margin-bottom: 2px;
-    writing-mode: vertical-rl;
-    transform: translateX(-50%) rotate(180deg);
-    font-size: 10px;
+    margin-bottom: 3px;
+    padding: 0 1px;
+    transform: translateX(-50%);
+    font-size: 11px;
     font-weight: 600;
-    line-height: 1;
+    line-height: 1.15;
     white-space: nowrap;
-    color: var(--ink-muted);
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
     background: var(--surface);
 }
 
+/* Set by fitForecast when the values measure too close at 11px — the tropics'
+   "11,5"s on the narrowest phones. */
+.forecast-chart.is-compact .forecast-value {
+    font-size: 10px;
+}
+
+/* And when even 10px is too close — a polar summer's twenty-four sunlit
+   hours — every other value and hour goes quiet, the peak's always kept. */
+.forecast-hour.is-quiet .forecast-value,
+.forecast-time.is-quiet {
+    visibility: hidden;
+}
+
+/* Each bar's own hour, under it: the same flex and the same gap as the bars,
+   so the columns cannot drift apart. */
+.forecast-times {
+    display: flex;
+    gap: var(--forecast-gap);
+    margin-top: 3px;
+}
+
+.forecast-time {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+    font-size: 10px;
+    line-height: 1.2;
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+    transition: opacity 300ms ease;
+}
+
 /* "Now", to the minute — the same line over the UV bars and over the daylight
-   bar, each positioned by its owner on the clock's tick. It runs 3px past the
+   bar, each positioned by its owner on the clock's tick against its own time
+   scale: the sunlit hours above, the whole day below. It runs 3px past the
    strip's edges so it reads as a marker laid over the strip rather than a
    part of it. The white halo is for the daylight bar: its night bands are as
    dark as the ink, and without the halo the line would sink into them for a

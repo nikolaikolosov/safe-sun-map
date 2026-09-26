@@ -8,7 +8,7 @@
 
 import { fetchUv, formatUv, uvBand } from './uv.js';
 import { collapsedBottomPx, initDaylight, refreshRemaining, renderDaylight } from './daylight.js';
-import { refreshForecast, renderForecast } from './forecast.js';
+import { fitForecast, refreshForecast, renderForecast } from './forecast.js';
 import { initMap, showUser } from './map.js';
 import { initHelp } from './help.js';
 import {
@@ -209,10 +209,11 @@ function render() {
         dom.veil.style.opacity = '0';
     }
 
-    // Last, and only here. The dot is placed by measuring the column above it,
-    // so every element that changes that column's height — the reading
-    // replacing the status line most of all — has to be in its final state
-    // first. Measuring mid-render put the dot 37px high.
+    // Last, and only here. The values are fitted and the dot is placed by
+    // measuring what is on screen, so every element that changes the column —
+    // the reading replacing the status line most of all — has to be in its
+    // final state first. Measuring mid-render put the dot 37px high.
+    fitForecast();
     placeUser();
 }
 
@@ -365,6 +366,7 @@ function init() {
     setInterval(updateClock, CLOCK_TICK_MS);
 
     // A rotation or a resized window moves the line the dot is anchored to.
+    // (The hourly values refit themselves: src/forecast.js watches the strip.)
     window.addEventListener('resize', placeUser);
 
     // Coming back to a tab that has been parked for an hour: the reading on it
