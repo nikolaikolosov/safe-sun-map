@@ -74,17 +74,18 @@
                     </p>
                     <p id="uv-advice" class="card-advice"></p>
 
-                    <!-- The same index for each hour of today, as bars in the
-                         band colours: the number above says whether, this says
-                         when. Filled by src/forecast.js from the same request
-                         that brought the number. -->
+                    <!-- The same index for each hour of today that the sun is
+                         up, as bars in the band colours with the hour's value on
+                         top and the hour underneath: the number above says
+                         whether, this says when. Filled by src/forecast.js from
+                         the same request that brought the number. -->
                     <div id="forecast" class="forecast" hidden>
                         <div class="forecast-head">
                             <p class="card-label" data-i18n="forecast.title">Today by hour</p>
                             <p id="forecast-peak" class="forecast-peak"></p>
                         </div>
                         <div id="forecast-chart" class="forecast-chart" role="img"></div>
-                        <div id="forecast-axis" class="hour-axis" aria-hidden="true"></div>
+                        <div id="forecast-times" class="forecast-times" aria-hidden="true"></div>
                     </div>
 
                     <p id="clock" class="card-clock"></p>

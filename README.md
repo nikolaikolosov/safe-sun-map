@@ -30,9 +30,21 @@ look past.
 3. The reading is refreshed every 10 minutes, whenever the visitor moves more than 10 km, and
    whenever a parked tab comes back to the foreground.
 
-Under the number, the day by the hour: 24 bars in the same five colours, the hours already
-gone dimmed, a line at "now" to the minute, and the peak named beside the title. The number
-says whether; the strip says when — whether to wait an hour, or go now before it climbs. Bar
+Under the number, the day by the hour: a bar for each hour the sun puts UV into, in the same
+five colours, with the hour's value upright on its tip and the hour itself underneath; the
+hours already gone dimmed, a line at "now" to the minute, and the peak named beside the title.
+The number says whether; the strip says when — whether to wait an hour, or go now before it
+climbs — and opened in the morning it reads as the day's numbers in order.
+
+The strip spans only the sunlit hours — 07 to 18 on an equinox day in Montevideo — because
+that is what makes the numbers readable. Across all 24 hours a bar is 11–14px wide on a phone,
+and a value like `7,5` is about 17px set upright: the whole day's numbers could only be read
+turned on end. Dropping the night, where the index is zero anyway, doubles every bar's width.
+The fit is measured, not guessed: if the values still stand closer than a word space — the
+tropics' `12,8`s on the smallest phones, or a polar summer's twenty-four sunlit hours — they
+first drop from 11px to 10px, then every other hour goes quiet, counting out from the peak so
+the day's highest number always stays. A bar is only drawn for an hour whose value rounds
+above `0.0`, so no bar can carry a zero, and a day without sun has no strip at all. Bar
 heights are drawn against a fixed ceiling of 11, where the scale's own top band begins, so a
 bar touching the top means "extreme" on any day in any place and a winter day is honestly a
 row of small green bars. Hovering a bar (or a screen reader) gets its hour, value and band.
@@ -41,9 +53,10 @@ whole rather than drawn with a zero — a green gap where the data has one would
 lie the current reading refuses to tell, only smaller.
 
 A second card under the reading gives the day its own shape: a bar of the 24 hours divided
-into night, astronomical, nautical and civil twilight and daylight, the same line at "now"
-across it as on the UV strip — the two sit at the same width on the same ruler, so the line is
-at the same pixel on both — and behind a tap the same phases as rows with their hours — the layout
+into night, astronomical, nautical and civil twilight and daylight, with a tick every three
+hours and the same line at "now" across it as on the UV strip — on its own scale, since the UV
+strip spans only the sunlit hours — and behind a tap the same phases as rows with their hours —
+the layout
 [timeanddate.com](https://www.timeanddate.com/astronomy/) uses. The bar answers at a glance
 and stays; the nine rows are reference, and on a small phone they were most of the screen.
 Whether the table is open is remembered between visits, like the language. The date comes from the device
@@ -106,8 +119,8 @@ returning visitors keep the previous copy for up to ten more (Pages sends
 index.html          markup and the meta-tag CSP
 css/styles.css      one screen's worth of styles
 src/uv.js           the domain model: bands, rounding, formatting, the API call
-src/forecast.js     the hourly strip on the UV card: bars, the dimmed past, the line at "now"
-src/axis.js         the 00–24 ruler both strips share, a tick every three hours
+src/forecast.js     the hourly strip on the UV card: sunlit hours, their values, "now", fitting
+src/axis.js         the 00–24 ruler under the daylight bar, a tick every three hours
 src/sun.js          the sun's phases for a date and a coordinate, computed on the device
 src/daylight.js     the daylight card: the 24-hour bar and the phase table
 src/map.js          Leaflet — basemap, "you are here", and where on screen it sits
@@ -115,7 +128,7 @@ src/help.js         the ⓘ sheet: what the index is, the levels, what it does
 src/i18n.js         copy in en/es/ru, and the language runtime
 src/app.js          wiring: position → reading → wash, and the switcher
 tests/uv.test.js    band boundaries, formatting, API failure modes, the hourly series
-tests/forecast.test.js  bar colours and heights, "now", the peak, what hides when
+tests/forecast.test.js  the sunlit window, values and hours on the bars, "now", what hides when
 tests/i18n.test.js  language resolution, persistence, copy completeness
 tests/sun.test.js   solar anchors, day ordering, polar and white-night cases
 tests/daylight.test.js  axis coverage, zone offsets, published-times agreement

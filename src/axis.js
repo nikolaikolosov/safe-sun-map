@@ -1,15 +1,14 @@
 /**
- * Hour ticks under a 24-hour strip.
+ * Hour ticks under the daylight bar's 24 hours.
  *
- * Shared by the UV chart and the daylight bar, which sit one above the other
- * at the same width: the same ruler under both is what lets the eye carry a
- * time from one to the other.
+ * The UV strip used to share this ruler, one card up at the same width. It
+ * now spans only the sunlit hours, to give each hour room for its value
+ * upright, and labels every bar with its own hour instead.
  */
 
 /**
- * Every three hours. Six was enough to read the daylight bar by, but the UV
- * strip is read for an hour — "until 15", "after 16" — and with a tick only
- * every six the eye had to count bars to find it. Nine two-digit labels fit
+ * Every three hours: a phase boundary is read to the hour, and with a tick
+ * only every six the eye had to count to find it. Nine two-digit labels fit
  * the card's width with room between them; twenty-five would not.
  */
 const AXIS_HOURS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
