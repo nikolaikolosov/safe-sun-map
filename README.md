@@ -30,9 +30,15 @@ look past.
 3. The reading is refreshed every 10 minutes, whenever the visitor moves more than 10 km, and
    whenever a parked tab comes back to the foreground.
 
-Under the number, the day by the hour: 24 bars in the same five colours, the hours already
-gone dimmed, a line at "now" to the minute, and the peak named beside the title. The number
-says whether; the strip says when — whether to wait an hour, or go now before it climbs. Bar
+Under the number, the day by the hour: 24 bars in the same five colours, each hour's value
+standing on the tip of its bar, the hours already gone dimmed, a line at "now" to the minute,
+and the peak named beside the title. The number says whether; the strip says when — whether to
+wait an hour, or go now before it climbs — and opened in the morning it reads as the day's
+numbers in order. The values stand on end, reading upward: a bar is 9–12px wide on a phone and
+12px at most on a desktop, and a value like `7,5` set upright is about 14px, so twenty-four of
+them side by side would run together. Nothing is written over the night, where there is no
+bar, and a bar is only drawn for an hour whose value rounds above `0.0`, so no bar can carry a
+zero. Bar
 heights are drawn against a fixed ceiling of 11, where the scale's own top band begins, so a
 bar touching the top means "extreme" on any day in any place and a winter day is honestly a
 row of small green bars. Hovering a bar (or a screen reader) gets its hour, value and band.
@@ -115,7 +121,7 @@ src/help.js         the ⓘ sheet: what the index is, the levels, what it does
 src/i18n.js         copy in en/es/ru, and the language runtime
 src/app.js          wiring: position → reading → wash, and the switcher
 tests/uv.test.js    band boundaries, formatting, API failure modes, the hourly series
-tests/forecast.test.js  bar colours and heights, "now", the peak, what hides when
+tests/forecast.test.js  bar colours and heights, the values on them, "now", the peak, what hides when
 tests/i18n.test.js  language resolution, persistence, copy completeness
 tests/sun.test.js   solar anchors, day ordering, polar and white-night cases
 tests/daylight.test.js  axis coverage, zone offsets, published-times agreement

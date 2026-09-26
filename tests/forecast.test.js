@@ -63,6 +63,12 @@ describe('barHeightPct', () => {
         expect(barHeightPct(0, 11)).toBe(0);
     });
 
+    it('draws no bar for an hour that rounds to 0.0, so no bar can be labelled "0.0"', () => {
+        expect(barHeightPct(0.04, 11)).toBe(0);
+        // 0.05 rounds up to 0.1, and is drawn.
+        expect(barHeightPct(0.05, 11)).toBe(5);
+    });
+
     it('never runs off the top', () => {
         expect(barHeightPct(14, 11)).toBe(100);
     });
@@ -87,7 +93,10 @@ describe('the strip', () => {
     });
 
     const block = () => document.getElementById('forecast');
+    const hours = () => [...document.querySelectorAll('.forecast-hour')];
     const bars = () => [...document.querySelectorAll('.forecast-bar')];
+    const values = () => [...document.querySelectorAll('.forecast-value')];
+    const valueAt = (i) => hours()[i].querySelector('.forecast-value');
     const line = () => document.querySelector('.now-line');
 
     /** Pins the device clock to a Montevideo wall-clock time and draws. */
@@ -121,16 +130,16 @@ describe('the strip', () => {
         expect(bars()[2].style.height).toBe('0%');
     });
 
-    it("labels every bar with its hour in the LOCATION's clock, its value and its band", () => {
+    it("labels every hour with its time in the LOCATION's clock, its value and its band", () => {
         drawAt(12);
-        expect(bars()[12].title).toBe('12:00 · 6.0 · High');
-        expect(bars()[0].title).toBe('00:00 · 0.0 · Low');
+        expect(hours()[12].title).toBe('12:00 · 6.0 · High');
+        expect(hours()[0].title).toBe('00:00 · 0.0 · Low');
     });
 
     it('names the peak next to the title, in the language in force', () => {
         drawAt(12, 0, 'ru');
         expect(document.getElementById('forecast-peak').textContent).toBe('пик 6,0 · 12:00');
-        expect(bars()[12].title).toBe('12:00 · 6,0 · Высокий');
+        expect(hours()[12].title).toBe('12:00 · 6,0 · Высокий');
     });
 
     it('gives the chart one sentence for a screen reader', () => {
@@ -140,9 +149,77 @@ describe('the strip', () => {
         );
     });
 
+    it("writes each hour's value over its bar, for every hour that has one", () => {
+        drawAt(8);
+        // The fixture's sun runs 07:00–17:00: eleven bars, eleven values.
+        expect(values()).toHaveLength(11);
+        expect(values().map((v) => v.textContent)).toEqual([
+            '0.1',
+            '0.7',
+            '1.9',
+            '3.5',
+            '5.1',
+            '6.0',
+            '5.8',
+            '4.6',
+            '2.9',
+            '1.4',
+            '0.5',
+        ]);
+        expect(valueAt(12).textContent).toBe('6.0');
+        expect(valueAt(15).textContent).toBe('2.9');
+    });
+
+    it('writes nothing over the night, where there is no bar', () => {
+        drawAt(8);
+        for (const i of [0, 3, 6, 18, 23]) {
+            expect(bars()[i].style.height).toBe('0%');
+            expect(valueAt(i)).toBeNull();
+        }
+    });
+
+    it('stands each value on the tip of its own bar', () => {
+        drawAt(8);
+        for (const hour of hours()) {
+            const value = hour.querySelector('.forecast-value');
+            if (value)
+                expect(value.style.bottom).toBe(hour.querySelector('.forecast-bar').style.height);
+        }
+    });
+
+    it('agrees with the number on the card, to the digit', () => {
+        drawAt(8);
+        // Every value is the same rounding and formatting as the reading and
+        // the hover label, so the chart and the card can never disagree.
+        hours().forEach((hour, i) => {
+            const value = hour.querySelector('.forecast-value');
+            if (value) expect(hour.title).toContain(` ${value.textContent} `);
+            else expect(DAY[i].uv).toBeLessThan(0.05);
+        });
+    });
+
+    it('writes the values with the separator of the language in force', () => {
+        drawAt(8, 0, 'ru');
+        expect(valueAt(12).textContent).toBe('6,0');
+        expect(valueAt(9).textContent).toBe('1,9');
+        drawAt(8, 0, 'es');
+        expect(valueAt(13).textContent).toBe('5,8');
+    });
+
+    it('prints no "0.0" at all, even over an hour that is not quite zero', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(at(8) * 1000));
+        renderForecast(
+            DAY.map((h, i) => (i === 18 ? { ...h, uv: 0.04 } : h)),
+            'America/Montevideo',
+        );
+        expect(valueAt(18)).toBeNull();
+        expect(values().some((v) => v.textContent === '0.0')).toBe(false);
+    });
+
     it('dims the hours that have passed and none that have not', () => {
         drawAt(14, 30);
-        const past = bars().map((b) => b.classList.contains('is-past'));
+        const past = hours().map((h) => h.classList.contains('is-past'));
         expect(past.slice(0, 14).every(Boolean)).toBe(true);
         expect(past.slice(14).some(Boolean)).toBe(false);
     });
@@ -162,15 +239,15 @@ describe('the strip', () => {
 
         expect(bars()).toEqual(before);
         expect(line().style.left).toBe(`${(15.25 / 24) * 100}%`);
-        expect(bars()[14].classList.contains('is-past')).toBe(true);
-        expect(bars()[15].classList.contains('is-past')).toBe(false);
+        expect(hours()[14].classList.contains('is-past')).toBe(true);
+        expect(hours()[15].classList.contains('is-past')).toBe(false);
     });
 
     it('hides the line, and dims everything, once the series is yesterday', () => {
         // Ten past midnight, before the fetch that brings the new day.
         drawAt(24, 10);
         expect(line().hidden).toBe(true);
-        expect(bars().every((b) => b.classList.contains('is-past'))).toBe(true);
+        expect(hours().every((h) => h.classList.contains('is-past'))).toBe(true);
     });
 
     it('hides the strip when there is no series, leaving the reading to itself', () => {

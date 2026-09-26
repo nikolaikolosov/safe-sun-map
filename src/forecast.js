@@ -1,13 +1,15 @@
 /**
  * The hourly strip on the UV card: today's index hour by hour as bars in the
- * band colours, the hours already gone dimmed, and a line at "now".
+ * band colours, each with its value on top, the hours already gone dimmed,
+ * and a line at "now".
  *
  * It answers the question the single number cannot — not "is it safe" but
  * "when". Whether to wait an hour, or go now before it climbs, is read off the
- * shape of the day in the same five colours the map is washed with.
+ * shape of the day in the same five colours the map is washed with, and off
+ * the numbers when the shape is not precise enough to plan by.
  */
 
-import { formatUv, uvBand } from './uv.js';
+import { formatUv, roundUv, uvBand } from './uv.js';
 import { localeTag, t } from './i18n.js';
 import { renderHourAxis } from './axis.js';
 
@@ -76,12 +78,16 @@ export function peakOf(hourly) {
 /**
  * A bar's height as a share of the chart.
  *
+ * Zero is decided on the ROUNDED value, like the band and the number: an hour
+ * of 0.04 is "0.0" wherever it is written, so it gets no bar — a bar with
+ * "0.0" printed on top of it would be a picture contradicting its own label.
+ *
  * @param {number} uv
  * @param {number} scaleUv - the index drawn at full height
  * @returns {number} 0–100
  */
 export function barHeightPct(uv, scaleUv) {
-    if (uv <= 0) return 0;
+    if (roundUv(uv) <= 0) return 0;
     return Math.max(MIN_BAR_PCT, Math.min(100, (uv / scaleUv) * 100));
 }
 
@@ -114,23 +120,44 @@ export function renderForecast(hourly, timezone) {
     const top = peakOf(hourly);
     const scale = Math.max(SCALE_UV, top.uv);
 
-    const bars = hourly.map((h) => {
+    const hours = hourly.map((h) => {
         const band = uvBand(h.uv);
+        const height = `${barHeightPct(h.uv, scale)}%`;
+
+        // One column per hour holding its bar and its value, so the two dim
+        // together and a hover anywhere on either names the hour.
+        const hour = document.createElement('span');
+        hour.className = 'forecast-hour';
+        hour.title = `${at(h)} · ${formatUv(h.uv, locale)} · ${t('band.' + band.id)}`;
+
         const bar = document.createElement('span');
         bar.className = 'forecast-bar';
-        bar.style.height = `${barHeightPct(h.uv, scale)}%`;
+        bar.style.height = height;
         // Straight from the band table, like the wash and the legend, so a bar
         // cannot be a colour the map would not turn.
         bar.style.backgroundColor = band.fill;
-        bar.title = `${at(h)} · ${formatUv(h.uv, locale)} · ${t('band.' + band.id)}`;
-        return bar;
+        hour.append(bar);
+
+        // The value sits on the tip of its own bar: its bottom is the bar's
+        // height, so the numbers trace the same curve the bars draw. Only over
+        // a bar that exists — a row of zeros across the night would say
+        // nothing the empty space does not.
+        if (height !== '0%') {
+            const value = document.createElement('span');
+            value.className = 'forecast-value';
+            value.style.bottom = height;
+            value.textContent = formatUv(h.uv, locale);
+            hour.append(value);
+        }
+
+        return hour;
     });
 
     const now = document.createElement('span');
     now.className = 'now-line';
     now.setAttribute('aria-hidden', 'true');
 
-    el.chart.replaceChildren(...bars, now);
+    el.chart.replaceChildren(...hours, now);
     renderHourAxis(el.axis);
 
     // A day with no sun at all has no peak worth naming.
@@ -147,9 +174,9 @@ export function renderForecast(hourly, timezone) {
 }
 
 /**
- * Moves "now" along the strip: dims the hours that have passed and places the
- * line. Run from the clock tick, on the bars that are already there — the
- * series itself only changes when a fetch does.
+ * Moves "now" along the strip: dims the hours that have passed — bar and value
+ * together — and places the line. Run from the clock tick, on the columns that
+ * are already there — the series itself only changes when a fetch does.
  *
  * @param {{time: number, uv: number}[]} hourly - the series the strip was drawn from
  */
@@ -157,12 +184,12 @@ export function refreshForecast(hourly) {
     const el = elements();
     if (!el.block || el.block.hidden) return;
 
-    const bars = el.chart.querySelectorAll('.forecast-bar');
+    const hours = el.chart.querySelectorAll('.forecast-hour');
     const line = el.chart.querySelector('.now-line');
-    if (bars.length !== hourly.length || !line) return;
+    if (hours.length !== hourly.length || !line) return;
 
     const nowSec = Date.now() / 1000;
-    bars.forEach((bar, i) => bar.classList.toggle('is-past', hourly[i].time + HOUR_S <= nowSec));
+    hours.forEach((hour, i) => hour.classList.toggle('is-past', hourly[i].time + HOUR_S <= nowSec));
 
     const current = hourAt(hourly, nowSec);
     line.hidden = current === -1;

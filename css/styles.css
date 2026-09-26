@@ -235,30 +235,70 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-/* One flex child per hour, grown from the baseline. The chart is a fixed 40px
-   and every bar's height is a share of it (src/forecast.js), so the bars can
-   be compared with yesterday's, not only with each other. */
+/* One column per hour. The bars stand in a fixed 40px and every bar's height
+   is a share of it (src/forecast.js), so the bars can be compared with
+   yesterday's, not only with each other. Above that, room for the tallest
+   bar's value: it is sized for four characters on a full-height bar — "12,4",
+   which the tropics reach — so a high day never pushes a number off the card.
+   Content-box, so `height` is the bars' own 40px and the room is added on. */
 .forecast-chart {
+    --headroom: 24px;
     position: relative;
     display: flex;
-    align-items: flex-end;
     gap: 2px;
+    box-sizing: content-box;
     height: 40px;
-    margin-top: 8px;
+    padding-top: var(--headroom);
+    margin-top: 2px;
     border-bottom: 1px solid var(--hairline);
 }
 
-.forecast-bar {
+.forecast-hour {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
     flex: 1 1 0;
     min-width: 0;
-    border-radius: 2px 2px 0 0;
     transition: opacity 300ms ease;
 }
 
+.forecast-bar {
+    flex: 1 1 auto;
+    border-radius: 2px 2px 0 0;
+}
+
 /* Gone, but kept: the shape of the morning is context for the afternoon, and a
-   strip that starts at "now" would change shape every hour. */
-.forecast-bar.is-past {
+   strip that starts at "now" would change shape every hour. The value dims
+   with its bar — they are one column. */
+.forecast-hour.is-past {
     opacity: 0.35;
+}
+
+/* The hour's value, standing on the tip of its bar and reading upward. On end
+   because the bars are 9–12px wide on a phone and 12px at most on a desktop,
+   and a value like "7,5" set upright is about 14px: twenty-four of them side
+   by side run together into one unreadable string. On end, each needs only
+   its own line height.
+   `bottom` is the bar's height (set by src/forecast.js) and the margin lifts
+   it 2px clear of the bar. vertical-rl plus a half-turn is the portable way
+   to read bottom-to-top; `sideways-lr` would say it directly but is not in
+   every engine yet.
+   The white ground and the z-index are for the line at "now": it passes
+   behind the current hour's value instead of striking through it. */
+.forecast-value {
+    position: absolute;
+    left: 50%;
+    z-index: 1;
+    margin-bottom: 2px;
+    writing-mode: vertical-rl;
+    transform: translateX(-50%) rotate(180deg);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+    background: var(--surface);
 }
 
 /* "Now", to the minute — the same line over the UV bars and over the daylight
@@ -277,6 +317,12 @@ body {
     background: var(--ink);
     box-shadow: 0 0 0 1px rgb(255 255 255 / 85%);
     pointer-events: none;
+}
+
+/* Over the UV bars it spans the bars and their 3px overhang, as on the
+   daylight bar — not up through the room kept for the values. */
+.forecast-chart .now-line {
+    top: calc(var(--headroom) - 3px);
 }
 
 /* ---------- Daylight card ---------- */
