@@ -110,6 +110,10 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    /* The gap between hours on the UV strip — and so also between the hour
+       labels under it and under the daylight bar, which is what keeps every
+       label under the same slice of both strips. */
+    --scale-gap: 3px;
     pointer-events: none;
     /* Reserve the bottom furniture — the support pill and its offset — so an
        opened phase table runs out of column rather than over the top of it.
@@ -218,9 +222,6 @@ body {
 /* ---------- Today by hour ---------- */
 
 .forecast {
-    /* Shared by the bars and the hour row below them, which is what keeps
-       each hour under its own bar. */
-    --forecast-gap: 3px;
     margin-top: 12px;
 }
 
@@ -248,7 +249,7 @@ body {
     --headroom: 16px;
     position: relative;
     display: flex;
-    gap: var(--forecast-gap);
+    gap: var(--scale-gap);
     box-sizing: content-box;
     height: 40px;
     padding-top: var(--headroom);
@@ -274,7 +275,7 @@ body {
    strip that starts at "now" would change shape every hour. The value and the
    hour dim with their bar. */
 .forecast-hour.is-past,
-.forecast-time.is-past {
+.hour-label.is-past {
     opacity: 0.35;
 }
 
@@ -307,36 +308,16 @@ body {
 /* And when even 10px is too close — a polar summer's twenty-four sunlit
    hours — every other value and hour goes quiet, the peak's always kept. */
 .forecast-hour.is-quiet .forecast-value,
-.forecast-time.is-quiet {
+.hour-label.is-quiet {
     visibility: hidden;
 }
 
-/* Each bar's own hour, under it: the same flex and the same gap as the bars,
-   so the columns cannot drift apart. */
-.forecast-times {
-    display: flex;
-    gap: var(--forecast-gap);
-    margin-top: 3px;
-}
-
-.forecast-time {
-    flex: 1 1 0;
-    min-width: 0;
-    text-align: center;
-    font-size: 10px;
-    line-height: 1.2;
-    color: var(--ink-muted);
-    font-variant-numeric: tabular-nums;
-    transition: opacity 300ms ease;
-}
-
 /* "Now", to the minute — the same line over the UV bars and over the daylight
-   bar, each positioned by its owner on the clock's tick against its own time
-   scale: the sunlit hours above, the whole day below. It runs 3px past the
-   strip's edges so it reads as a marker laid over the strip rather than a
-   part of it. The white halo is for the daylight bar: its night bands are as
-   dark as the ink, and without the halo the line would sink into them for a
-   third of the day. */
+   bar, each positioned by its owner on the clock's tick against the same
+   scale, so the two meet on the same pixel. It runs 3px past the strip's
+   edges so it reads as a marker laid over the strip rather than a part of it.
+   The white halo is for the daylight bar: its twilight and night bands are
+   as dark as the ink, and without the halo the line would sink into them. */
 .now-line {
     position: absolute;
     top: -3px;
@@ -453,11 +434,33 @@ body {
     background: #cfe6fb;
 }
 
-/* ---------- The hour axis ---------- */
+/* ---------- The hour scale ---------- */
 
-/* Under the UV bars and under the daylight bar alike (src/axis.js). Ticks are
-   positioned by their real place on the axis, not distributed, so they line
-   up with whatever is drawn above them. */
+/* One label per hour of the UV strip's scale, under the UV bars and under
+   the daylight bar alike (src/axis.js): the same flex and the same gap as the
+   bars, so each label sits under its own bar, and one card down, under the
+   same slice of the daylight bar. */
+.hour-row {
+    display: flex;
+    gap: var(--scale-gap);
+    height: 14px;
+    margin-top: 2px;
+}
+
+.hour-label {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+    font-size: 10px;
+    line-height: 14px;
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+    transition: opacity 300ms ease;
+}
+
+/* The fallback ruler under a whole day, when there is no UV forecast to share
+   a scale with. Ticks are positioned by their real place on the axis, not
+   distributed, so they line up with the bands above them. */
 .hour-axis {
     position: relative;
     height: 14px;

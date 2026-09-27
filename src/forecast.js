@@ -11,6 +11,7 @@
 
 import { formatUv, roundUv, uvBand } from './uv.js';
 import { localeTag, t } from './i18n.js';
+import { hourLabels, renderHourRow, scaleFraction } from './axis.js';
 
 /**
  * The chart's full height, in index points.
@@ -43,9 +44,6 @@ const HOUR_S = 3600;
 
 let dom = null;
 
-/** @type {ResizeObserver|null} Refits the values whenever the strip's width changes. */
-let watcher = null;
-
 /** Caches the strip's elements once the DOM exists. */
 function elements() {
     if (!dom) {
@@ -57,19 +55,6 @@ function elements() {
         };
     }
     return dom;
-}
-
-/**
- * Index of the hour that contains an instant, or -1 when the series does not
- * cover it — which is what the series looks like just after midnight, until
- * the next fetch replaces yesterday with today.
- *
- * @param {{time: number}[]} hourly - epoch seconds, ascending
- * @param {number} nowSec - epoch seconds
- * @returns {number}
- */
-export function hourAt(hourly, nowSec) {
-    return hourly.findIndex((h) => nowSec >= h.time && nowSec < h.time + HOUR_S);
 }
 
 /**
@@ -125,6 +110,24 @@ export function sunlitWindow(hourly) {
 }
 
 /**
+ * The hours the strip is drawn against, as instants: the start of the first
+ * sunlit hour, the end of the last, and each hour's start — or `null` when
+ * there is no strip to draw.
+ *
+ * Handed to the daylight card as well, so both strips span the same hours
+ * and their lines at "now" meet.
+ *
+ * @param {{time: number, uv: number}[]} hourly
+ * @returns {import('./axis.js').HourScale|null}
+ */
+export function forecastScale(hourly) {
+    const lit = sunlitWindow(hourly);
+    if (!lit) return null;
+    const times = hourly.slice(lit.start, lit.end + 1).map((h) => h.time);
+    return { from: times[0], to: times[times.length - 1] + HOUR_S, times };
+}
+
+/**
  * Which of `count` columns go quiet when there is no room for all their
  * values: every other one, counted out from `keep`, so the column at `keep`
  * — the peak — always keeps its number.
@@ -163,20 +166,15 @@ export function renderForecast(hourly, timezone) {
         hourCycle: 'h23',
         timeZone: zone,
     });
-    const hourOnly = new Intl.DateTimeFormat(locale, {
-        hour: '2-digit',
-        hourCycle: 'h23',
-        timeZone: zone,
-    });
     const at = (h) => clock.format(new Date(h.time * 1000));
 
     const top = peakOf(hourly);
-    const scale = Math.max(SCALE_UV, top.uv);
+    const ceiling = Math.max(SCALE_UV, top.uv);
     const shown = hourly.slice(lit.start, lit.end + 1);
 
     const columns = shown.map((h) => {
         const band = uvBand(h.uv);
-        const height = `${barHeightPct(h.uv, scale)}%`;
+        const height = `${barHeightPct(h.uv, ceiling)}%`;
 
         // One column per hour holding its bar and its value, so the two dim
         // together and a hover on either names the hour.
@@ -207,30 +205,23 @@ export function renderForecast(hourly, timezone) {
         return column;
     });
 
-    // Each bar's own hour under it, in the location's clock. With the night
-    // left off, the strip no longer starts at midnight, so a ruler of round
-    // hours would leave the eye counting; one label per bar does not.
-    const times = shown.map((h) => {
-        const time = document.createElement('span');
-        time.className = 'forecast-time';
-        time.textContent = hourOnly.format(new Date(h.time * 1000));
-        return time;
-    });
-
     const now = document.createElement('span');
     now.className = 'now-line';
     now.setAttribute('aria-hidden', 'true');
 
     el.chart.replaceChildren(...columns, now);
-    el.times.replaceChildren(...times);
 
-    // Fitting depends on the strip's width, and that changes for reasons of
-    // its own — a rotation, a resized window, the card appearing for the
-    // first time — not all of which a window `resize` event reports.
-    if (!watcher && typeof ResizeObserver === 'function') {
-        watcher = new ResizeObserver(() => fitForecast());
-        watcher.observe(el.chart);
-    }
+    // Each bar's own hour under it, in the location's clock. With the night
+    // left off, the strip no longer starts at midnight, so a ruler of round
+    // hours would leave the eye counting; one label per bar does not.
+    renderHourRow(
+        el.times,
+        hourLabels(
+            shown.map((h) => h.time),
+            zone,
+            locale,
+        ),
+    );
 
     const peak = `${t('forecast.peak')} ${formatUv(top.uv, locale)} · ${at(top)}`;
     el.peak.textContent = peak;
@@ -257,29 +248,25 @@ export function refreshForecast(hourly) {
     const el = elements();
     if (!el.block || el.block.hidden) return;
 
-    const lit = sunlitWindow(hourly);
+    const scale = forecastScale(hourly);
     const columns = el.chart.querySelectorAll('.forecast-hour');
-    const times = el.times.querySelectorAll('.forecast-time');
+    const times = el.times.querySelectorAll('.hour-label');
     const line = el.chart.querySelector('.now-line');
-    if (!lit || !line || columns.length !== lit.end - lit.start + 1) return;
+    if (!scale || !line || columns.length !== scale.times.length) return;
 
     const nowSec = Date.now() / 1000;
     columns.forEach((column, i) => {
-        const past = hourly[lit.start + i].time + HOUR_S <= nowSec;
+        const past = scale.times[i] + HOUR_S <= nowSec;
         column.classList.toggle('is-past', past);
         times[i]?.classList.toggle('is-past', past);
     });
 
-    const index = hourAt(hourly, nowSec);
-    const current = index - lit.start;
-    const inside = index !== -1 && current >= 0 && current < columns.length;
-    line.hidden = !inside;
-    if (!inside) return;
-
     // Bars share the width equally, so an hour is 1/n of it and the minutes
-    // into the hour are a fraction of that.
-    const fraction = (nowSec - hourly[lit.start + current].time) / HOUR_S;
-    line.style.left = `${((current + fraction) / columns.length) * 100}%`;
+    // into the hour are a fraction of that — the same fraction the daylight
+    // card places its line at, from the same scale.
+    const fraction = scaleFraction(scale, nowSec);
+    line.hidden = !(fraction >= 0 && fraction < 1);
+    if (!line.hidden) line.style.left = `${fraction * 100}%`;
 }
 
 /**
@@ -296,32 +283,40 @@ export function refreshForecast(hourly) {
  * It needs the strip laid out, so it runs after the card is on screen and
  * whenever the strip's width changes. Without layout — a hidden card, a
  * test's DOM — every box measures zero and it does nothing.
+ *
+ * Returns which hours went quiet, one flag per hour, so the daylight card's
+ * row of the same hours can be labelled the same way; `null` when nothing
+ * was measured.
+ *
+ * @returns {boolean[]|null}
  */
 export function fitForecast() {
     const el = elements();
-    if (!el.block || el.block.hidden) return;
-    if (!el.chart.getBoundingClientRect().width) return;
+    if (!el.block || el.block.hidden) return null;
+    if (!el.chart.getBoundingClientRect().width) return null;
 
     const columns = [...el.chart.querySelectorAll('.forecast-hour')];
-    const times = [...el.times.querySelectorAll('.forecast-time')];
-    const quiet = (flags) =>
+    const times = [...el.times.querySelectorAll('.hour-label')];
+    const quiet = (flags) => {
         columns.forEach((column, i) => {
             column.classList.toggle('is-quiet', flags[i]);
             times[i]?.classList.toggle('is-quiet', flags[i]);
         });
+        return flags;
+    };
 
     el.chart.classList.remove('is-compact');
-    quiet(columns.map(() => false));
-    if (!crowded(columns)) return;
+    const none = quiet(columns.map(() => false));
+    if (!crowded(columns)) return none;
 
     el.chart.classList.add('is-compact');
-    if (!crowded(columns)) return;
+    if (!crowded(columns)) return none;
 
     const peak = Math.max(
         0,
         columns.findIndex((column) => column.classList.contains('is-peak')),
     );
-    quiet(alternateQuiet(columns.length, peak));
+    return quiet(alternateQuiet(columns.length, peak));
 }
 
 /**

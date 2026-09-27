@@ -7,8 +7,14 @@
  */
 
 import { fetchUv, formatUv, uvBand } from './uv.js';
-import { collapsedBottomPx, initDaylight, refreshRemaining, renderDaylight } from './daylight.js';
-import { fitForecast, refreshForecast, renderForecast } from './forecast.js';
+import {
+    collapsedBottomPx,
+    initDaylight,
+    quietHours,
+    refreshRemaining,
+    renderDaylight,
+} from './daylight.js';
+import { fitForecast, forecastScale, refreshForecast, renderForecast } from './forecast.js';
 import { initMap, showUser } from './map.js';
 import { initHelp } from './help.js';
 import {
@@ -191,7 +197,9 @@ function render() {
         dom.band.textContent = t('band.' + band.id);
         dom.advice.textContent = t('advice.' + band.id);
         renderForecast(view.hourly, timezone);
-        renderDaylight(view.position, timezone);
+        // The daylight bar is drawn against the UV strip's hours, so the two
+        // strips are one scale and their lines at "now" meet.
+        renderDaylight(view.position, timezone, forecastScale(view.hourly));
         sunDrawnFor = new Date().toDateString();
 
         dom.reading.hidden = false;
@@ -213,8 +221,17 @@ function render() {
     // measuring what is on screen, so every element that changes the column —
     // the reading replacing the status line most of all — has to be in its
     // final state first. Measuring mid-render put the dot 37px high.
-    fitForecast();
+    fitScales();
     placeUser();
+}
+
+/**
+ * Fits the hourly values to the strip's width, and labels the daylight
+ * card's row of the same hours the same way, so the two rows stay one ruler.
+ */
+function fitScales() {
+    const quiet = fitForecast();
+    if (quiet) quietHours(quiet);
 }
 
 /** Renders local time at the visitor's coordinates, per the provider's zone. */
@@ -366,8 +383,14 @@ function init() {
     setInterval(updateClock, CLOCK_TICK_MS);
 
     // A rotation or a resized window moves the line the dot is anchored to.
-    // (The hourly values refit themselves: src/forecast.js watches the strip.)
     window.addEventListener('resize', placeUser);
+
+    // The values are fitted to the strip's width, whatever changes it — a
+    // rotation, a resized window, the card appearing for the first time — not
+    // all of which a window `resize` event reports.
+    if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(fitScales).observe(document.getElementById('forecast-chart'));
+    }
 
     // Coming back to a tab that has been parked for an hour: the reading on it
     // is from whenever it was left, and the whole promise is that the colour is

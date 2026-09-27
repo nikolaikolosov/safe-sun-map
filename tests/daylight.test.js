@@ -5,6 +5,7 @@ import {
     initDaylight,
     localMinutes,
     localSegments,
+    quietHours,
     refreshRemaining,
     remainingPhase,
     renderDaylight,
@@ -12,6 +13,7 @@ import {
 } from '../src/daylight.js';
 import { sunPhases } from '../src/sun.js';
 import { setLang } from '../src/i18n.js';
+import { scaleFraction } from '../src/axis.js';
 
 const MIN_PER_DAY = 1440;
 
@@ -495,5 +497,108 @@ describe('the row the clock is in', () => {
         expect(marked()[0]).not.toBe(wasMarked);
         expect(wasMarked.hasAttribute('aria-current')).toBe(false);
         expect(marked()[0].querySelector('.daylight-dot').className).toContain('phase-civil');
+    });
+
+    describe("against the UV strip's hours", () => {
+        /** 07:00-19:00 in Montevideo on 31 Aug 2026, as forecastScale hands it over. */
+        const FROM = Date.UTC(2026, 7, 31, 10) / 1000;
+        const SCALE = {
+            from: FROM,
+            to: FROM + 12 * 3600,
+            times: Array.from({ length: 12 }, (_, i) => FROM + i * 3600),
+        };
+
+        const drawOn = (hour, minute = 0, scale = SCALE) => {
+            pin(hour, minute);
+            setLang('en', { persist: false });
+            renderDaylight(POSITION, ZONE, scale);
+        };
+        const bands = () => [...document.querySelectorAll('#daylight-bar .daylight-band')];
+        const phasesOnBar = () =>
+            bands().map((b) => b.className.replace('daylight-band phase-', ''));
+        const minutesOnBar = () =>
+            bands().reduce((sum, b) => sum + parseFloat(b.style.flexGrow), 0);
+        const labels = () => [...document.querySelectorAll('#daylight-axis .hour-label')];
+
+        it('spans only those hours: what the sun does between 07:00 and 19:00, and no night', () => {
+            drawOn(12);
+            // Civil dawn runs to 07:05; sunset 18:25; civil dusk to 18:51; then nautical.
+            expect(phasesOnBar()).toEqual(['civil', 'day', 'civil', 'nautical']);
+            expect(minutesOnBar()).toBeCloseTo(12 * 60, 6);
+        });
+
+        it("keeps each phase's whole times in its tooltip, even where the bar cuts it", () => {
+            drawOn(12);
+            expect(bands()[0].title).toBe('Civil twilight 06:39–07:05');
+        });
+
+        it('labels the same hours as the UV strip, one per hour', () => {
+            drawOn(12);
+            expect(document.getElementById('daylight-axis').className).toBe('hour-row');
+            expect(labels().map((l) => l.textContent)).toEqual([
+                '07',
+                '08',
+                '09',
+                '10',
+                '11',
+                '12',
+                '13',
+                '14',
+                '15',
+                '16',
+                '17',
+                '18',
+            ]);
+        });
+
+        it('puts the line where the UV strip puts its own', () => {
+            drawOn(14, 30);
+            // 14:30 is seven and a half hours into twelve.
+            expect(parseFloat(nowLine().style.left)).toBeCloseTo((7.5 / 12) * 100, 9);
+            expect(nowLine().style.left).toBe(`${scaleFraction(SCALE, Date.now() / 1000) * 100}%`);
+        });
+
+        it('hides the line off those hours, as the UV strip hides its own', () => {
+            drawOn(5, 30);
+            expect(nowLine().hidden).toBe(true);
+            drawOn(20);
+            expect(nowLine().hidden).toBe(true);
+        });
+
+        it('moves the line along the same hours on the tick', () => {
+            drawOn(14, 30);
+            pin(15, 15);
+            refreshRemaining(POSITION, ZONE);
+            expect(parseFloat(nowLine().style.left)).toBeCloseTo((8.25 / 12) * 100, 9);
+        });
+
+        it('names the span for a screen reader', () => {
+            drawOn(12);
+            expect(document.getElementById('daylight-bar').getAttribute('aria-label')).toBe(
+                "The day's phases, 07:00–19:00",
+            );
+        });
+
+        it('quiets the hours the UV strip quiets — and only on a row of the same hours', () => {
+            drawOn(12);
+            const flags = labels().map((_, i) => i % 2 === 1);
+            quietHours(flags);
+            expect(labels().map((l) => l.classList.contains('is-quiet'))).toEqual(flags);
+
+            // Flags for some other scale are not this row's to follow.
+            quietHours([true]);
+            expect(labels().map((l) => l.classList.contains('is-quiet'))).toEqual(flags);
+        });
+
+        it('falls back to the whole day under its ruler when there is no forecast', () => {
+            drawOn(12, 0, null);
+            expect(document.getElementById('daylight-axis').className).toBe('hour-axis');
+            expect(document.querySelectorAll('#daylight-axis .hour-tick')).toHaveLength(9);
+            expect(minutesOnBar()).toBeCloseTo(1440, 6);
+            expect(document.getElementById('daylight-bar').getAttribute('aria-label')).toBe(
+                "The day's phases from midnight to midnight",
+            );
+            expect(parseFloat(nowLine().style.left)).toBeCloseTo(50, 6);
+        });
     });
 });

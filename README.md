@@ -52,13 +52,22 @@ The series comes in the same request as the number, and a series with a hole in 
 whole rather than drawn with a zero — a green gap where the data has one would be the same
 lie the current reading refuses to tell, only smaller.
 
-A second card under the reading gives the day its own shape: a bar of the 24 hours divided
-into night, astronomical, nautical and civil twilight and daylight, with a tick every three
-hours and the same line at "now" across it as on the UV strip — on its own scale, since the UV
-strip spans only the sunlit hours — and behind a tap the same phases as rows with their hours —
-the layout
+A second card under the reading gives the day its own shape: a bar of the day's phases —
+night, astronomical, nautical and civil twilight, daylight — and behind a tap the same phases
+as rows with their hours, the layout
 [timeanddate.com](https://www.timeanddate.com/astronomy/) uses. The bar answers at a glance
 and stays; the nine rows are reference, and on a small phone they were most of the screen.
+
+The bar is drawn against the UV strip's hours: the UV strip hands its span — the sunlit
+hours, 07 to 19 on an equinox day in Montevideo — to the daylight card, and the bar shows what
+the sun does across exactly those hours, under exactly the same hour labels, with the same
+line at "now". Both lines are placed by one function of that span, so they can only ever land
+on the same pixel; before the first sunlit hour and after the last, both are hidden. The night
+is left off both strips, since nothing on either happens in it — the phase table still lists
+every phase with its full times, and a phase the bar cuts keeps its whole times in its tooltip.
+When there are more hours than room for every value, the UV strip labels every other hour, and
+the daylight row follows it, so the two rows stay one ruler. Without a UV forecast there is no
+span to share, and the bar falls back to the whole day under a tick every three hours.
 Whether the table is open is remembered between visits, like the language. The date comes from the device
 clock and everything else is computed on the device from that date and the position
 ([src/sun.js](src/sun.js), NOAA's solar algorithm): no extra network call, and the numbers
@@ -120,7 +129,7 @@ index.html          markup and the meta-tag CSP
 css/styles.css      one screen's worth of styles
 src/uv.js           the domain model: bands, rounding, formatting, the API call
 src/forecast.js     the hourly strip on the UV card: sunlit hours, their values, "now", fitting
-src/axis.js         the 00–24 ruler under the daylight bar, a tick every three hours
+src/axis.js         the hour scale both strips share, and the whole-day fallback ruler
 src/sun.js          the sun's phases for a date and a coordinate, computed on the device
 src/daylight.js     the daylight card: the 24-hour bar and the phase table
 src/map.js          Leaflet — basemap, "you are here", and where on screen it sits
@@ -131,7 +140,9 @@ tests/uv.test.js    band boundaries, formatting, API failure modes, the hourly s
 tests/forecast.test.js  the sunlit window, values and hours on the bars, "now", what hides when
 tests/i18n.test.js  language resolution, persistence, copy completeness
 tests/sun.test.js   solar anchors, day ordering, polar and white-night cases
-tests/daylight.test.js  axis coverage, zone offsets, published-times agreement
+tests/daylight.test.js  axis coverage, zone offsets, published-times agreement, the shared span
+tests/axis.test.js  the scale's fraction, hour labels, the row and the ruler
+tests/scale.test.js the two strips together: same hours, same labels, lines on the same spot
 ```
 
 ## Verification
