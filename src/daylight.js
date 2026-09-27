@@ -1,7 +1,11 @@
 /**
- * The daylight card: a 24-hour bar of the day's phases with the times under
- * it, in the shape timeanddate.com uses for "Night, Twilight, and Daylight
- * Times".
+ * The daylight card: a bar of the day's phases with the times under it, in
+ * the shape timeanddate.com uses for "Night, Twilight, and Daylight Times".
+ *
+ * With a UV forecast the bar spans the same sunlit hours as the UV strip one
+ * card up, under the same hour labels, so the two read as one scale and their
+ * lines at "now" meet; the night, where nothing on either strip happens, is
+ * left off. Without a forecast it spans the whole day.
  *
  * All of it is arithmetic from `sun.js` — the date off the device clock, the
  * coordinate from geolocation. Nothing here asks the network.
@@ -9,7 +13,7 @@
 
 import { sunPhases, sunTimes } from './sun.js';
 import { localeTag, t } from './i18n.js';
-import { renderHourAxis } from './axis.js';
+import { hourLabels, renderHourAxis, renderHourRow, scaleFraction } from './axis.js';
 
 const MIN_PER_DAY = 1440;
 
@@ -17,6 +21,13 @@ const MIN_PER_DAY = 1440;
 const PHASES_KEY = 'ssm-phases';
 
 let dom = null;
+
+/**
+ * The scale the bar was last drawn against, kept for the clock tick, which
+ * moves the line at "now" along it without redrawing the bar.
+ * @type {import('./axis.js').HourScale|null}
+ */
+let drawnScale = null;
 
 /** Caches the card's elements once the DOM exists. */
 function elements() {
@@ -316,7 +327,7 @@ export function refreshRemaining(position, timezone) {
 
     renderSummary(el.summary, state);
     markCurrentPhase(el.phases, state.segments, state.nowMin);
-    placeNow(el.now, state.nowMin);
+    placeNow(el.now, nowFraction(state.nowMin));
 }
 
 /**
@@ -324,8 +335,10 @@ export function refreshRemaining(position, timezone) {
  *
  * @param {{lat: number, lon: number}|null} position
  * @param {string|null} timezone - IANA zone the times are shown in
+ * @param {import('./axis.js').HourScale|null} [scale] - the UV strip's hours;
+ *   without it the bar spans the whole day
  */
-export function renderDaylight(position, timezone) {
+export function renderDaylight(position, timezone, scale = null) {
     const el = elements();
     if (!el.card) return;
 
@@ -337,6 +350,7 @@ export function renderDaylight(position, timezone) {
     const zone = timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
     const state = compute(position, zone);
     const { now, segments } = state;
+    drawnScale = scale;
 
     el.place.textContent =
         `${zone.split('/').pop().replace(/_/g, ' ')} · ` +
@@ -347,9 +361,10 @@ export function renderDaylight(position, timezone) {
         }).format(now);
 
     renderSummary(el.summary, state);
-    renderBar(el.bar, segments);
-    placeNow(el.now, state.nowMin);
-    renderHourAxis(el.axis);
+    renderBar(el.bar, segments, spanOf(scale, zone));
+    placeNow(el.now, nowFraction(state.nowMin));
+    if (scale) renderHourRow(el.axis, hourLabels(scale.times, zone, localeTag()));
+    else renderHourAxis(el.axis);
     renderPhases(el.phases, segments, state.nowMin);
 
     el.card.hidden = false;
@@ -382,32 +397,88 @@ function renderSummary(target, { segments, tomorrow, nowMin, sun }) {
 }
 
 /**
- * Puts the line at "now" over the bar, to the minute. The bar is laid out in
- * the location's local minutes, and so is `nowMin`, so the line lands on the
- * same axis the bands were drawn on — and on the same one the UV strip's line
- * uses, one card up.
+ * How far along the bar "now" is, 0 to 1.
  *
- * @param {HTMLElement|null} line
+ * Against the UV strip's scale, it is the very function the UV strip places
+ * its own line with — which is what puts the two lines on the same pixel.
+ * Against the whole day, it is the local minutes the bands were laid out in.
+ *
  * @param {number} nowMin - local minutes since midnight
+ * @returns {number}
  */
-function placeNow(line, nowMin) {
-    if (!line) return;
-    line.style.left = `${(nowMin / MIN_PER_DAY) * 100}%`;
-    line.hidden = false;
+function nowFraction(nowMin) {
+    return drawnScale ? scaleFraction(drawnScale, Date.now() / 1000) : nowMin / MIN_PER_DAY;
 }
 
-/** The 24-hour bar itself: one flex child per phase, width = its share. */
-function renderBar(target, segments) {
+/**
+ * Puts the line at "now" over the bar, to the minute — or hides it while
+ * "now" is off the bar: before the first sunlit hour and after the last,
+ * exactly when the UV strip hides its own.
+ *
+ * @param {HTMLElement|null} line
+ * @param {number} fraction - how far along the bar, 0 to 1
+ */
+function placeNow(line, fraction) {
+    if (!line) return;
+    line.hidden = !(fraction >= 0 && fraction < 1);
+    if (!line.hidden) line.style.left = `${fraction * 100}%`;
+}
+
+/**
+ * The stretch of the local day the bar covers, in the location's minutes:
+ * the scale's hours when there is one, the whole day when there is not.
+ *
+ * @param {import('./axis.js').HourScale|null} scale
+ * @param {string} zone
+ * @returns {{fromMin: number, toMin: number}}
+ */
+function spanOf(scale, zone) {
+    if (!scale) return { fromMin: 0, toMin: MIN_PER_DAY };
+    const start = new Date(scale.from * 1000);
+    const fromMin = localMinutes(start, zoneOffsetMin(start, zone));
+    return { fromMin, toMin: Math.min(MIN_PER_DAY, fromMin + (scale.to - scale.from) / 60) };
+}
+
+/**
+ * The bar itself: one flex child per phase, width = its share of the span.
+ * A phase is clipped to the span but keeps its whole times in its tooltip —
+ * a daylight that began before the bar did still began when it began.
+ */
+function renderBar(target, segments, span) {
     target.replaceChildren(
-        ...segments.map((segment) => {
+        ...segments.flatMap((segment) => {
+            const from = Math.max(span.fromMin, segment.startMin);
+            const to = Math.min(span.toMin, segment.endMin);
+            if (to <= from) return [];
+
             const band = document.createElement('span');
             band.className = `daylight-band phase-${segment.id}`;
-            band.style.flexGrow = String(segment.endMin - segment.startMin);
+            band.style.flexGrow = String(to - from);
             band.title = `${t('phase.' + segment.id)} ${clockAt(segment.startMin)}–${clockAt(segment.endMin)}`;
-            return band;
+            return [band];
         }),
     );
-    target.setAttribute('aria-label', t('daylight.barAria'));
+
+    const whole = span.fromMin === 0 && span.toMin === MIN_PER_DAY;
+    target.setAttribute(
+        'aria-label',
+        whole
+            ? t('daylight.barAria')
+            : `${t('daylight.barAriaHours')} ${clockAt(span.fromMin)}–${clockAt(span.toMin)}`,
+    );
+}
+
+/**
+ * Labels the hour row under the bar the way the UV strip labels the same
+ * hours: when there was room for only every other value up there, only every
+ * other hour here too, so the two rows stay one ruler.
+ *
+ * @param {boolean[]} flags - one per hour, as `fitForecast` returned them
+ */
+export function quietHours(flags) {
+    const labels = elements().axis?.querySelectorAll('.hour-label') ?? [];
+    if (labels.length !== flags.length) return;
+    labels.forEach((label, i) => label.classList.toggle('is-quiet', flags[i]));
 }
 
 /** The table under the bar: every phase the day actually has, with its hours. */

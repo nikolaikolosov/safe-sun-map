@@ -4,7 +4,7 @@ import {
     alternateQuiet,
     barHeightPct,
     fitForecast,
-    hourAt,
+    forecastScale,
     peakOf,
     refreshForecast,
     renderForecast,
@@ -21,26 +21,6 @@ const DAY = VALUES.map((uv, h) => ({ time: MIDNIGHT + h * 3600, uv }));
 
 /** Epoch seconds of a Montevideo wall-clock time on that day. */
 const at = (h, m = 0) => MIDNIGHT + h * 3600 + m * 60;
-
-describe('hourAt', () => {
-    it('finds the hour an instant falls in', () => {
-        expect(hourAt(DAY, at(12))).toBe(12);
-        expect(hourAt(DAY, at(12, 59))).toBe(12);
-        expect(hourAt(DAY, at(13))).toBe(13);
-    });
-
-    it('covers the first and the last minute of the day', () => {
-        expect(hourAt(DAY, at(0))).toBe(0);
-        expect(hourAt(DAY, at(23, 59))).toBe(23);
-    });
-
-    it('has no hour for an instant the series does not cover', () => {
-        // Tomorrow, before the fetch that will bring tomorrow.
-        expect(hourAt(DAY, at(24, 5))).toBe(-1);
-        expect(hourAt(DAY, at(-1))).toBe(-1);
-        expect(hourAt([], at(12))).toBe(-1);
-    });
-});
 
 describe('peakOf', () => {
     it('names the highest hour', () => {
@@ -106,6 +86,20 @@ describe('sunlitWindow', () => {
     });
 });
 
+describe('forecastScale', () => {
+    it("spans the sunlit hours as instants, from the first hour's start to the last one's end", () => {
+        const scale = forecastScale(DAY);
+        expect(scale.from).toBe(at(7));
+        expect(scale.to).toBe(at(18));
+        expect(scale.times).toEqual([7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map((h) => at(h)));
+    });
+
+    it('has no scale where there is no strip', () => {
+        expect(forecastScale(DAY.map((h) => ({ ...h, uv: 0 })))).toBeNull();
+        expect(forecastScale([])).toBeNull();
+    });
+});
+
 describe('alternateQuiet', () => {
     it('quiets every other column, counted out from the one to keep', () => {
         expect(alternateQuiet(5, 2)).toEqual([false, true, false, true, false]);
@@ -139,7 +133,7 @@ describe('the strip', () => {
 
     const block = () => document.getElementById('forecast');
     const columns = () => [...document.querySelectorAll('.forecast-hour')];
-    const times = () => [...document.querySelectorAll('.forecast-time')];
+    const times = () => [...document.querySelectorAll('#forecast-times .hour-label')];
     const values = () => [...document.querySelectorAll('.forecast-value')];
     const line = () => document.querySelector('.now-line');
     /** The column for a wall-clock hour, found the way a reader finds it: by its time. */
@@ -298,7 +292,7 @@ describe('the strip', () => {
         drawAt(14, 30);
         expect(line().hidden).toBe(false);
         // 14:30 is seven and a half hours into an eleven-hour strip.
-        expect(line().style.left).toBe(`${(7.5 / 11) * 100}%`);
+        expect(parseFloat(line().style.left)).toBeCloseTo((7.5 / 11) * 100, 9);
     });
 
     it('moves the line on the tick without redrawing a bar', () => {
@@ -309,7 +303,7 @@ describe('the strip', () => {
         refreshForecast(DAY);
 
         expect(columns()).toEqual(before);
-        expect(line().style.left).toBe(`${(8.25 / 11) * 100}%`);
+        expect(parseFloat(line().style.left)).toBeCloseTo((8.25 / 11) * 100, 9);
         expect(column('14').classList.contains('is-past')).toBe(true);
         expect(column('15').classList.contains('is-past')).toBe(false);
     });
@@ -348,9 +342,9 @@ describe('the strip', () => {
         expect(block().hidden).toBe(true);
     });
 
-    it('leaves the values alone when there is no layout to measure', () => {
+    it('leaves the values alone when there is no layout to measure, and says so', () => {
         drawAt(12);
-        fitForecast();
+        expect(fitForecast()).toBeNull();
         expect(document.querySelector('.is-compact, .is-quiet')).toBeNull();
     });
 });
